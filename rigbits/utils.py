@@ -110,7 +110,7 @@ frameSelectedCenter()
 
     # reset SRT
     rCmd = '''
-from mgear import attribute
+from mgear.core import attribute
 attribute.smart_reset()
 
 '''
