@@ -1,6 +1,6 @@
 """Rigbits utilitie tools"""
 
-from mGear_pyqt import compileUi
+from mgear.core.pyqt import compileUi
 
 import pymel.core as pm
 
@@ -201,8 +201,8 @@ gui.Guide_UI.inspectSettings()
 
     #  build from selection
     rCmd = '''
-import mGear_guidesTemplates
-mGear_guidesTemplates.buildFromSelection()
+from mgear.shifter import guidesTemplates
+guidesTemplates.buildFromSelection()
 
 '''
     createRunTimeCommand("mGear_buildFromSelection", rCmd, ann="")
