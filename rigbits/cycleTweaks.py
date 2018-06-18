@@ -6,7 +6,7 @@ import pymel.core as pm
 import pymel.core.datatypes as datatypes
 
 from mgear.core import icon, skin, node
-from mgear.core import rigbits
+from mgear import rigbits
 from mgear.rigbits import rivet, blendShapes
 
 
