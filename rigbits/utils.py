@@ -170,8 +170,8 @@ gui.Guide_UI.inspectSettings()
 
     #  build from selection
     rCmd = '''
-from mgear import shifter
-shifter.Rig().buildFromSelection()
+from mgear.shifter import gui
+gui.Guide_UI.buildFromSelection()
 
 '''
     createRunTimeCommand("mGear_buildFromSelection", rCmd, ann="")
