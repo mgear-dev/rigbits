@@ -179,7 +179,7 @@ gui.Guide_UI.buildFromSelection()
     # walk transform child
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkDown(pm.selected())
 
@@ -191,7 +191,7 @@ pw.walkDown(pm.selected())
     # walk transform Parent
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkUp(pm.selected())
 
@@ -202,7 +202,7 @@ pw.walkUp(pm.selected())
     # walk transform Left
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkLeft(pm.selected())
 
@@ -212,7 +212,7 @@ pw.walkLeft(pm.selected())
     # walk transform Right
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkRight(pm.selected())
 
@@ -222,7 +222,7 @@ pw.walkRight(pm.selected())
     # walk mirror
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkMirror(pm.selected())
 
@@ -243,7 +243,7 @@ pm.viewSet(p=True, fit=True)
     # walk transform child add
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkDown(pm.selected(), True)
 
@@ -255,7 +255,7 @@ pw.walkDown(pm.selected(), True)
     # walk transform Parent
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkUp(pm.selected(), True)
 
@@ -266,7 +266,7 @@ pw.walkUp(pm.selected(), True)
     # walk transform Left
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkLeft(pm.selected(), True)
 
@@ -276,7 +276,7 @@ pw.walkLeft(pm.selected(), True)
     # walk transform Right
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkRight(pm.selected(), True)
 
@@ -286,7 +286,7 @@ pw.walkRight(pm.selected(), True)
     # walk mirror
     rCmd = '''
 import pymel.core as pm
-import mgear.pickWalk as pw
+import mgear.core.pickWalk as pw
 
 pw.walkMirror(pm.selected(), True)
 
