@@ -194,8 +194,8 @@ def duplicateSym(*args):
         pm.select(oTarget, hi=True)
 
         for x in pm.selected():
-            x.rename(mgear.string.convertRLName(x.name().split("|")[-1]))
-        oTarget.rename(mgear.string.convertRLName(oSel.name()))
+            x.rename(string.convertRLName(x.name().split("|")[-1]))
+        oTarget.rename(string.convertRLName(oSel.name()))
     else:
         pm.displayWarning("Select something before duplicate symmetry.")
 
