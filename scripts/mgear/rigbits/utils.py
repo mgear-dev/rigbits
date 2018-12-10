@@ -27,7 +27,7 @@ def createHotkeys(*args):
     # duplicate sym
     rCmd = '''
 import pymel.core as pm
-import mgear.shifter.gui as gui
+from mgear.shifter import guide_manager
 import mgear.rigbits as rigbits
 if isinstance(pm.selected()[0], pm.MeshFace):
     pm.polyExtrudeFacet(constructionHistory=True,keepFacesTogether=True )
@@ -36,7 +36,7 @@ else:
     if not pm.attributeQuery("comp_type", node=root, ex=True):
         rigbits.duplicateSym()
     else:
-        gui.Guide_UI.duplicate(True)
+        guide_manager.duplicate(True)
 
 '''
     createRunTimeCommand("mGear_duplicateSym", rCmd, ann="")
@@ -44,7 +44,7 @@ else:
     # duplicate
     rCmd = '''
 import pymel.core as pm
-import mgear.shifter.gui as gui
+from mgear.shifter import guide_manager
 import mgear.rigbits as rigbits
 if isinstance(pm.selected()[0], pm.MeshFace):
     pm.polyExtrudeFacet(constructionHistory=True,keepFacesTogether=True )
@@ -53,7 +53,7 @@ else:
     if not pm.attributeQuery("comp_type", node=root, ex=True):
         pm.duplicate()
     else:
-        gui.Guide_UI.duplicate(False)
+        guide_manager.duplicate(False)
 
 '''
     createRunTimeCommand("mGear_duplicate", rCmd, ann="")
@@ -162,16 +162,16 @@ else:
 
     #  inspect property
     rCmd = '''
-import mgear.shifter.gui as gui
-gui.Guide_UI.inspectSettings()
+from mgear.shifter import guide_manager
+guide_manager.inspect_settings()
 
 '''
     createRunTimeCommand("mGear_inspectProperty", rCmd, ann="")
 
     #  build from selection
     rCmd = '''
-from mgear.shifter import gui
-gui.Guide_UI.buildFromSelection()
+from mgear.shifter import guide_manager
+guide_manager.build_from_selection()
 
 '''
     createRunTimeCommand("mGear_buildFromSelection", rCmd, ann="")
