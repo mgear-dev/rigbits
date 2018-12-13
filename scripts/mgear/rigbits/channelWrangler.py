@@ -61,6 +61,12 @@ class cwUI(QtWidgets.QDialog, channelWranglerUI.Ui_Form):
     def __init__(self, parent=None):
         super(cwUI, self).__init__(parent)
         self.setupUi(self)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.installEventFilter(self)
+
+    def keyPressEvent(self, event):
+        if not event.key() == QtCore.Qt.Key_Escape:
+            super(cwUI, self).keyPressEvent(event)
 
 
 class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -93,7 +99,12 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_layout()
         self.create_connections()
 
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.installEventFilter(self)
+
+    def keyPressEvent(self, event):
+        if not event.key() == QtCore.Qt.Key_Escape:
+            super(channelWrangler, self).keyPressEvent(event)
 
     def setup_channelWranglerWindow(self):
         self.mayaMainWindow = pyqt.maya_main_window()
@@ -454,7 +465,7 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
 def openChannelWrangler(*args):
-    pyqt.showDialog(channelWrangler)
+    pyqt.showDialog(channelWrangler, dockable=True)
 
 ####################################
 
