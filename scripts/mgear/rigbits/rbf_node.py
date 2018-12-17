@@ -817,7 +817,6 @@ class RBFNode(object):
                 controlNode = drivenNode.replace(DRIVEN_SUFFIX, CTL_SUFFIX)
                 nodePlug = "{}.{}".format(controlNode, attr)
                 attributeValue_dict[attr] = mc.getAttr(nodePlug)
-                print attributeValue_dict[attr]
         if resetDriven:
             resetDrivenNodes(drivenNode)
         poseValues = [attributeValue_dict[attr] for attr in drivenAttrs]
