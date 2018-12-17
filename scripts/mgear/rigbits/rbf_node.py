@@ -35,7 +35,7 @@ import maya.OpenMaya as OpenMaya
 # mgear
 from mgear.core import transform, attribute
 from mgear.synoptic import utils
-
+from mgear.flex.update_utils import add_attribute
 
 # =============================================================================
 # constants
@@ -126,8 +126,12 @@ def addDrivenGroup(node):
         drivenName = node.replace(CTL_SUFFIX, DRIVEN_SUFFIX)
     else:
         drivenName = "{}{}".format(node, DRIVEN_SUFFIX)
-    drivenName = mc.group(name=drivenName, p=parentOfTarget[0], em=True)
+    if not mc.objExists(drivenName):
+        drivenName = mc.group(name=drivenName, p=parentOfTarget[0], em=True)
     attribute.add_mirror_config_channels(pm.PyNode(drivenName))
+    for attr in mc.listAttr(node, userDefined=True) or []:
+        if not mc.objExists("{}.{}".format(drivenName, attr)):
+            add_attribute(node, drivenName, attr)
     if node.endswith(CTL_SUFFIX):
         copyInverseMirrorAttrs(node, drivenName)
     mc.parent(node, drivenName)
@@ -810,8 +814,10 @@ class RBFNode(object):
                 index = SCALE_ATTRS.index(attr)
                 attributeValue_dict[attr] = scale[index]
             else:
-                nodePlug = "{}.{}".format(drivenNode, attr)
+                controlNode = drivenNode.replace(DRIVEN_SUFFIX, CTL_SUFFIX)
+                nodePlug = "{}.{}".format(controlNode, attr)
                 attributeValue_dict[attr] = mc.getAttr(nodePlug)
+                print attributeValue_dict[attr]
         if resetDriven:
             resetDrivenNodes(drivenNode)
         poseValues = [attributeValue_dict[attr] for attr in drivenAttrs]
