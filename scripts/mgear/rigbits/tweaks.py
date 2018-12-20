@@ -4,6 +4,7 @@ import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.core import skin, primitive, icon, transform, attribute
+from mgear.core import meshNavigation as mesh_navi
 from mgear.rigbits import rivet, blendShapes
 
 
@@ -125,6 +126,11 @@ def createRivetTweak(mesh,
         parent (None or dagNode, optional): The parent for the tweak
         ctlParent (None or dagNode, optional): The parent for the tweak control
         color (list, optional): The color for the control
+        size (float, optional): Size of the control
+        defSet (None, optional): Deformer set to add the joints
+
+    Returns:
+        PyNode: The tweak control
     """
     blendShape = blendShapes.getBlendShape(mesh)
 
@@ -232,6 +238,42 @@ def createRivetTweak(mesh,
     pm.parent(p, pp)
 
     return o_icon
+
+
+def createMirrorRivetTweak(mesh,
+                           edgePair,
+                           name,
+                           parent=None,
+                           ctlParent=None,
+                           color=[0, 0, 0],
+                           size=.04,
+                           defSet=None):
+    """Create a tweak joint attached to the mesh using a rivet.
+    The edge pair will be used to find the mirror position on the mesh
+
+    Args:
+        mesh (mesh): The object to add the tweak
+        edgePair (pari list): The edge pair to create the rivet in mirror side
+        name (str): The name for the tweak
+        parent (None or dagNode, optional): The parent for the tweak
+        ctlParent (None or dagNode, optional): The parent for the tweak control
+        color (list, optional): The color for the control
+        size (float, optional): Size of the control
+        defSet (None, optional): Deformer set to add the joints
+
+    Returns:
+        PyNode: The tweak control
+    """
+    mirror_edge_pair = [mesh_navi.find_mirror_edge(mesh, edgePair[0]).index(),
+                        mesh_navi.find_mirror_edge(mesh, edgePair[1]).index()]
+    return createRivetTweak(mesh,
+                            mirror_edge_pair,
+                            name,
+                            parent,
+                            ctlParent,
+                            color,
+                            size,
+                            defSet)
 
 
 def createRivetTweakFromList(mesh,
