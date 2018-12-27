@@ -620,14 +620,26 @@ def lipsRig(eLoop,
                               "fount in the scene" % jawJnt)
             return
 
+        # in order to avoid flips lets create a reference transform
+        ref_cns_list = []
+        for cns_ref in [headJnt, jawJnt]:
+
+            t = transform.getTransformFromPos(
+                cns_ref.getTranslation(space='world'))
+            ref = pm.createNode("transform",
+                                n=cns_ref.name() + "_cns",
+                                p=cns_ref,
+                                ss=True)
+            ref.setMatrix(t, worldSpace=True)
+            ref_cns_list.append(ref)
         # right corner connection
-        pm.parentConstraint(headJnt,
-                            jawJnt,
+        pm.parentConstraint(ref_cns_list[0],
+                            ref_cns_list[1],
                             upControls[0].getParent(),
                             mo=True)
         # left corner connection
-        pm.parentConstraint(headJnt,
-                            jawJnt,
+        pm.parentConstraint(ref_cns_list[0],
+                            ref_cns_list[1],
                             upControls[-1].getParent(),
                             mo=True)
         # up control connection
