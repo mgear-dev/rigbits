@@ -277,7 +277,7 @@ def lipsRig(eLoop,
     lowVec = []
     lowNpo = []
     # controls options
-    axis_list = ["sx", "sy", "sz", "ro", "rx", "ry", "rz"]
+    axis_list = ["sx", "sy", "sz", "ro"]
     upCtlOptions = [["corner", "R", "square", 4, .05, axis_list],
                     ["upOuter", "R", "circle", 14, .03, []],
                     ["upInner", "R", "circle", 14, .03, []],
@@ -402,13 +402,13 @@ def lipsRig(eLoop,
     applyop.gear_curvecns_op(lowCrv_upv, [upVec[0]] + lowVec + [upVec[-1]])
 
     # adding wires
-    pm.wire(upCrv, w=upCrv_ctl)
-    pm.wire(lowCrv, w=lowCrv_ctl)
-    pm.wire(upRope, w=upCrv_ctl)
-    pm.wire(lowRope, w=lowCrv_ctl)
+    pm.wire(upCrv, w=upCrv_ctl, dropoffDistance=[0, 1000])
+    pm.wire(lowCrv, w=lowCrv_ctl, dropoffDistance=[0, 1000])
+    pm.wire(upRope, w=upCrv_ctl, dropoffDistance=[0, 1000])
+    pm.wire(lowRope, w=lowCrv_ctl, dropoffDistance=[0, 1000])
 
-    pm.wire(upRope_upv, w=upCrv_upv)
-    pm.wire(lowRope_upv, w=lowCrv_upv)
+    pm.wire(upRope_upv, w=upCrv_upv, dropoffDistance=[0, 1000])
+    pm.wire(lowRope_upv, w=lowCrv_upv, dropoffDistance=[0, 1000])
 
     # setting constrains
     # up
@@ -520,7 +520,7 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if headJnt and isinstance(headJnt, str):
+        if headJnt and isinstance(headJnt, (str, unicode)):
             try:
                 j_parent = pm.PyNode(headJnt)
             except pm.MayaNodeError:
@@ -579,7 +579,7 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if jawJnt and isinstance(jawJnt, str):
+        if jawJnt and isinstance(jawJnt, (str, unicode)):
             try:
                 j_parent = pm.PyNode(jawJnt)
             except pm.MayaNodeError:
