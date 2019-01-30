@@ -54,6 +54,10 @@ def createGhostCtl(ctl, parent=None, connect=True):
         rigbits.connectUserDefinedChannels(newCtl, ctl)
     for grp in grps:
         grp.add(newCtl)
+
+    # add control tag
+    node.add_controller_tag(newCtl, parent)
+
     return newCtl
 
 

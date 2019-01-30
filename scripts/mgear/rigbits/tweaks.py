@@ -6,6 +6,7 @@ from pymel.core import datatypes
 from mgear.core import skin, primitive, icon, transform, attribute
 from mgear.core import meshNavigation as mesh_navi
 from mgear.rigbits import rivet, blendShapes
+from mgear.core import node
 
 
 def resetJntLocalSRT(jnt):
@@ -236,6 +237,9 @@ def createRivetTweak(mesh,
         p.attr("ry").set(180)
         p.attr("sz").set(-1)
     pm.parent(p, pp)
+
+    # add control tag
+    node.add_controller_tag(o_icon, ctlParent)
 
     return o_icon
 
