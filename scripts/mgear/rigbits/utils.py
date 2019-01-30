@@ -61,7 +61,7 @@ else:
     # frame in center
     rCmd = '''
 import pymel.core as pm
-import core.mel as mel
+import maya.mel as mel
 
 def frameSelectedCenter():
     oSel = pm.selected()[0]
@@ -88,7 +88,7 @@ attribute.smart_reset()
     # maximize Maya window
     rCmd = '''
 import core.cmds as cmds
-import core.mel as mel
+import maya.mel as mel
 gMainWindow = mel.eval('$temp1=$gMainWindow')
 acti = cmds.window( gMainWindow, q=True, titleBar=True)
 if acti:
@@ -116,7 +116,7 @@ for obj in pm.selected():
     # toggle wireframe on top
     rCmd = '''
 import pymel.core as pm
-import core.mel as mel
+import maya.mel as mel
 
 panel = pm.getPanel(wf=True)
 
@@ -132,7 +132,7 @@ else:
     # toggle shaded wireframe
     rCmd = '''
 import pymel.core as pm
-import core.mel as mel
+import maya.mel as mel
 
 panel = pm.getPanel(wf=True)
 
