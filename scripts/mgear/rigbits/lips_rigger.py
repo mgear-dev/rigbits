@@ -205,11 +205,11 @@ def lipsRig(eLoop,
         lowCrv.setCV(i, offset, space='world')
 
     upCrv_ctl = curve.createCurveFromCurve(upCrv,
-                                           setName("upCrv_%s" % ctlName),
+                                           setName("upCtl_crv"),
                                            nbPoints=7,
                                            parent=lipsCrv_root)
     lowCrv_ctl = curve.createCurveFromCurve(lowCrv,
-                                            setName("lowCrv_%s" % ctlName),
+                                            setName("lowCtl_crv"),
                                             nbPoints=7,
                                             parent=lipsCrv_root)
 

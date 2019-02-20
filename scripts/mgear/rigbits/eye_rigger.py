@@ -171,7 +171,7 @@ def eyeRig(eyeMesh,
         upCrv = curve.createCurveFromOrderedEdges(
             upEyelid, inPos, setName("upperEyelid"), parent=eyeCrv_root)
         upCrv_ctl = curve.createCurveFromOrderedEdges(
-            upEyelid, inPos, setName("upCrv_%s" % ctlName), parent=eyeCrv_root)
+            upEyelid, inPos, setName("upCtl_crv"), parent=eyeCrv_root)
         pm.rebuildCurve(upCrv_ctl, s=2, rt=0, rpo=True, ch=False)
 
         lowEyelid = meshNavigation.edgeRangeInLoopFromMid(
@@ -181,7 +181,7 @@ def eyeRig(eyeMesh,
         lowCrv_ctl = curve.createCurveFromOrderedEdges(
             lowEyelid,
             inPos,
-            setName("lowCrv_%s" % ctlName),
+            setName("lowCtl_crv"),
             parent=eyeCrv_root)
 
         pm.rebuildCurve(lowCrv_ctl, s=2, rt=0, rpo=True, ch=False)
