@@ -168,6 +168,13 @@ guide_manager.inspect_settings()
 '''
     createRunTimeCommand("mGear_inspectProperty", rCmd, ann="")
 
+    rCmd = '''
+from mgear.shifter import guide_manager
+guide_manager.inspect_settings(1)
+
+'''
+    createRunTimeCommand("mGear_inspectPropertyTab2", rCmd, ann="")
+
     #  build from selection
     rCmd = '''
 from mgear.shifter import guide_manager
