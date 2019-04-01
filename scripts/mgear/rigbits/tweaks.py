@@ -109,6 +109,8 @@ def createJntTweak(mesh, parentJnt, ctlParent):
     for m in mesh:
         doritosMagic(m, joint, jointBase)
 
+# TODO: optional joint parent?
+
 
 def createRivetTweak(mesh,
                      edgePair,
@@ -117,7 +119,9 @@ def createRivetTweak(mesh,
                      ctlParent=None,
                      color=[0, 0, 0],
                      size=.04,
-                     defSet=None):
+                     defSet=None,
+                     ctlSet=None,
+                     side=None):
     """Create a tweak joint attached to the mesh using a rivet
 
     Args:
@@ -129,6 +133,9 @@ def createRivetTweak(mesh,
         color (list, optional): The color for the control
         size (float, optional): Size of the control
         defSet (None, optional): Deformer set to add the joints
+        side (None, str): String to set the side. Valid values are L, R or C.
+            If the side is not set or the value is not valid, the side will be
+            set automatically based on the world position
 
     Returns:
         PyNode: The tweak control
@@ -140,12 +147,13 @@ def createRivetTweak(mesh,
     oRivet = rivet.rivet()
     base = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
     # get side
-    if base.getTranslation(space='world')[0] < -0.01:
-        side = "R"
-    elif base.getTranslation(space='world')[0] > 0.01:
-        side = "L"
-    else:
-        side = "C"
+    if not side or side not in ["L", "R", "C"]:
+        if base.getTranslation(space='world')[0] < -0.01:
+            side = "R"
+        elif base.getTranslation(space='world')[0] > 0.01:
+            side = "L"
+        else:
+            side = "C"
 
     nameSide = name + "_tweak_" + side
     pm.rename(base, nameSide)
@@ -241,6 +249,14 @@ def createRivetTweak(mesh,
     # add control tag
     node.add_controller_tag(o_icon, ctlParent)
 
+    if not ctlSet:
+        try:
+            defSet = pm.PyNode("rig_controllers_grp")
+        except TypeError:
+            pm.sets(n="rig_controllers_grp")
+            ctlSet = pm.PyNode("rig_controllers_grp")
+    pm.sets(ctlSet, add=o_icon)
+
     return o_icon
 
 
@@ -251,7 +267,9 @@ def createMirrorRivetTweak(mesh,
                            ctlParent=None,
                            color=[0, 0, 0],
                            size=.04,
-                           defSet=None):
+                           defSet=None,
+                           ctlSet=None,
+                           side=None):
     """Create a tweak joint attached to the mesh using a rivet.
     The edge pair will be used to find the mirror position on the mesh
 
@@ -264,6 +282,8 @@ def createMirrorRivetTweak(mesh,
         color (list, optional): The color for the control
         size (float, optional): Size of the control
         defSet (None, optional): Deformer set to add the joints
+        ctlSet (None, optional): Description
+        side (None, optional): Description
 
     Returns:
         PyNode: The tweak control
@@ -277,14 +297,25 @@ def createMirrorRivetTweak(mesh,
                             ctlParent,
                             color,
                             size,
-                            defSet)
+                            defSet,
+                            ctlSet,
+                            side)
 
 
 def createRivetTweakFromList(mesh,
                              edgeIndexPairList,
-                             name, parent=None,
+                             name,
+                             parent=None,
                              ctlParent=None,
-                             color=[0, 0, 0]):
+                             color=[0, 0, 0],
+                             size=.04,
+                             defSet=None,
+                             ctlSet=None,
+                             side=None,
+                             mirror=False,
+                             mParent=None,
+                             mCtlParent=None,
+                             mColor=None):
     """Create multiple rivet tweaks from a list of edge pairs
 
     Args:
@@ -294,7 +325,23 @@ def createRivetTweakFromList(mesh,
         parent (None or dagNode, optional): The parent for the tweak
         ctlParent (None or dagNode, optional): The parent for the tweak control
         color (list, optional): The color for the control
+        size (float, optional): Description
+        defSet (None, optional): Description
+        ctlSet (None, optional): Description
+        side (None, optional): Description
+        mirror (bool, optional): Description
+        mParent (None, optional): Description
+        mColor (None, optional): Description
+
+    Returns:
+        TYPE: Description
     """
+    if not mParent:
+        mParent = parent
+    if not mCtlParent:
+        mCtlParent = ctlParent
+    if not mColor:
+        mColor = color
     ctlList = []
     for i, pair in enumerate(edgeIndexPairList):
         ctl = createRivetTweak(mesh,
@@ -302,8 +349,17 @@ def createRivetTweakFromList(mesh,
                                name + str(i).zfill(3),
                                parent,
                                ctlParent,
-                               color)
+                               color) # need to add al args
         ctlList.append(ctl)
+        if mirror:
+            m_ctl = createMirrorRivetTweak(mesh,
+                                           [pair[0], pair[1]],
+                                           name + str(i).zfill(3),
+                                           mParent,
+                                           mCtlParent,
+                                           mColor) # add all args
+            ctlList.append(m_ctl)
+
     return ctlList
 
 
@@ -312,7 +368,14 @@ def createRivetTweakLayer(layerMesh,
                           edgeList,
                           tweakName,
                           parent=None,
-                          ctlParent=None):
+                          ctlParent=None,
+                          color=[0, 0, 0],
+                          size=.04,
+                          defSet=None,
+                          ctlSet=None,
+                          side=None,
+                          mirror=False,
+                          static_jnt=None):
     """Create a rivet tweak layer
 
     Args:
@@ -322,17 +385,26 @@ def createRivetTweakLayer(layerMesh,
         tweakName (string): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
         ctlParent (None or dagNode, optional): the parent for the tweak control
+        color (list, optional): Description
+        size (float, optional): Description
+        defSet (None, optional): Description
+        ctlSet (None, optional): Description
+        side (None, optional): Description
+        mirror (bool, optional): Description
     """
     # Apply blendshape from blendshapes layer mesh
     blendShapes.connectWithBlendshape(layerMesh, bst)
 
     # create static joint
-    if pm.objExists('static_jnt') is not True:
-        static_jnt = primitive.addJoint(parent,
-                                        "static_jnt",
-                                        m=datatypes.Matrix(),
-                                        vis=True)
-    static_jnt = pm.PyNode("static_jnt")
+
+    if not static_jnt:
+        if pm.objExists('static_jnt') is not True:
+            static_jnt = primitive.addJoint(parent,
+                                            "static_jnt",
+                                            m=datatypes.Matrix(),
+                                            vis=True)
+        else:
+            static_jnt = pm.PyNode("static_jnt")
 
     # apply initial skincluster
     pm.skinCluster(static_jnt,
@@ -342,4 +414,33 @@ def createRivetTweakLayer(layerMesh,
                    n='%s_skinCluster' % layerMesh.name())
 
     # create doritos
-    createRivetTweak(layerMesh, edgeList, tweakName, parent, ctlParent)
+    createRivetTweakFromList(layerMesh,
+                             edgeList,
+                             tweakName,
+                             parent,
+                             ctlParent,
+                             color,
+                             size,
+                             defSet,
+                             ctlSet,
+                             side,
+                             mirror)
+
+# Helpers
+
+
+def edgePairList():
+    """Print and return a list of edge pairs to be use with
+    createRivetTweakLayer and createRivetTweakFromList
+
+    Returns:
+        list: list of edge pairs
+    """
+    edge = pm.ls(os=True, fl=True)
+    edgePairList = []
+    for i in range(0, len(edge), 2):
+        a = edge[i].index()
+        b = edge[i + 1].index()
+        edgePairList.append([a, b])
+    print edgePairList
+    return edgePairList
