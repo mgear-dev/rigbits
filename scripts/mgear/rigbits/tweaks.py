@@ -109,13 +109,12 @@ def createJntTweak(mesh, parentJnt, ctlParent):
     for m in mesh:
         doritosMagic(m, joint, jointBase)
 
-# TODO: optional joint parent?
-
 
 def createRivetTweak(mesh,
                      edgePair,
                      name,
                      parent=None,
+                     parentJnt=None,
                      ctlParent=None,
                      color=[0, 0, 0],
                      size=.04,
@@ -185,7 +184,12 @@ def createRivetTweak(mesh,
     pm.delete(temp)
 
     # create joints
-    jointBase = primitive.addJoint(npo, nameSide + "_jnt_lvl")
+    if not parentJnt:
+        parentJnt = npo
+    #TODO: if parent is different than ctl npo we should connect the jntBase in
+    # world space to align with npo
+
+    jointBase = primitive.addJoint(parentJnt, nameSide + "_jnt_lvl")
     joint = primitive.addJoint(jointBase, nameSide + "_jnt")
 
     # hidding joint base by changing the draw mode
@@ -199,7 +203,8 @@ def createRivetTweak(mesh,
     pm.sets(defSet, add=joint)
 
     controlType = "sphere"
-    o_icon = icon.create(jointBase, nameSide + "_ctl",
+    o_icon = icon.create(npo,
+                         nameSide + "_ctl",
                          datatypes.Matrix(),
                          color,
                          controlType,
@@ -264,6 +269,7 @@ def createMirrorRivetTweak(mesh,
                            edgePair,
                            name,
                            parent=None,
+                           parentJnt=None,
                            ctlParent=None,
                            color=[0, 0, 0],
                            size=.04,
@@ -294,6 +300,7 @@ def createMirrorRivetTweak(mesh,
                             mirror_edge_pair,
                             name,
                             parent,
+                            parentJnt,
                             ctlParent,
                             color,
                             size,
@@ -306,6 +313,7 @@ def createRivetTweakFromList(mesh,
                              edgeIndexPairList,
                              name,
                              parent=None,
+                             parentJnt=None,
                              ctlParent=None,
                              color=[0, 0, 0],
                              size=.04,
@@ -314,6 +322,7 @@ def createRivetTweakFromList(mesh,
                              side=None,
                              mirror=False,
                              mParent=None,
+                             mParentJnt=None,
                              mCtlParent=None,
                              mColor=None):
     """Create multiple rivet tweaks from a list of edge pairs
@@ -349,7 +358,7 @@ def createRivetTweakFromList(mesh,
                                name + str(i).zfill(3),
                                parent,
                                ctlParent,
-                               color) # need to add al args
+                               color)  # need to add al args
         ctlList.append(ctl)
         if mirror:
             m_ctl = createMirrorRivetTweak(mesh,
@@ -357,7 +366,7 @@ def createRivetTweakFromList(mesh,
                                            name + str(i).zfill(3),
                                            mParent,
                                            mCtlParent,
-                                           mColor) # add all args
+                                           mColor)  # add all args
             ctlList.append(m_ctl)
 
     return ctlList
@@ -368,6 +377,7 @@ def createRivetTweakLayer(layerMesh,
                           edgeList,
                           tweakName,
                           parent=None,
+                          parentJnt=None,
                           ctlParent=None,
                           color=[0, 0, 0],
                           size=.04,
@@ -375,6 +385,10 @@ def createRivetTweakLayer(layerMesh,
                           ctlSet=None,
                           side=None,
                           mirror=False,
+                          mParent=None,
+                          mParentJnt=None,
+                          mCtlParent=None,
+                          mColor=None,
                           static_jnt=None):
     """Create a rivet tweak layer
 
