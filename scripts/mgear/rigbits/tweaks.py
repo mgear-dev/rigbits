@@ -4,6 +4,7 @@ import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.core import skin, primitive, icon, transform, attribute
+from mgear.core import applyop
 from mgear.core import meshNavigation as mesh_navi
 from mgear.rigbits import rivet, blendShapes
 from mgear.core import node
@@ -21,26 +22,34 @@ def resetJntLocalSRT(jnt):
         pm.setAttr(jnt + ".translate" + axis, 0)
 
 
-def doritosMagic(mesh, joint, jointBase, parent=None):
+def pre_bind_matrix_connect(mesh, joint, jointBase):
+    """Connect the pre bind matrix of the skin cluseter to the joint parent.
+    This create the offset in the  deformation to avoid double transformation
+
+    Args:
+        mesh (PyNode): Mesh object with the tweak skin cluster
+        joint (PyNode): Tweak joint
+        jointBase (PyNode): Tweak joint parent
+    """
     # magic of doritos connection
     skinCluster = skin.getSkinCluster(mesh)
     if not skinCluster:
-        if pm.objExists('static_jnt') is not True:
-            static_jnt = primitive.addJoint(
-                parent, "static_jnt", m=datatypes.Matrix(), vis=True)
-        static_jnt = pm.PyNode("static_jnt")
-
         # apply initial skincluster
         skinCluster = pm.skinCluster(
-            static_jnt, mesh, tsb=True, nw=2, n='%s_skinCluster' % mesh.name())
-    try:
-        # we try to add the joint to the skin cluster. Will fail if is already
-        # in the skin cluster
-        pm.skinCluster(skinCluster, e=True, ai=joint, lw=True, wt=0)
-    except Exception:
-        pm.displayInfo("The Joint: %s  is already in the %s." % (
-            joint.name(), skinCluster.name()))
-        pass
+            joint,
+            mesh,
+            tsb=True,
+            nw=2,
+            n='%s_skinCluster' % mesh.name())
+    else:
+        try:
+            # we try to add the joint to the skin cluster. Will fail if is
+            # already in the skin cluster
+            pm.skinCluster(skinCluster, e=True, ai=joint, lw=True, wt=0)
+        except Exception:
+            pm.displayInfo("The Joint: %s  is already in the %s." % (
+                joint.name(), skinCluster.name()))
+            pass
     cn = joint.listConnections(p=True, type="skinCluster")
     for x in cn:
         if x.type() == "matrix":
@@ -107,7 +116,7 @@ def createJntTweak(mesh, parentJnt, ctlParent):
 
     # magic of doritos connection
     for m in mesh:
-        doritosMagic(m, joint, jointBase)
+        pre_bind_matrix_connect(m, joint, jointBase)
 
 
 def createRivetTweak(mesh,
@@ -120,7 +129,8 @@ def createRivetTweak(mesh,
                      size=.04,
                      defSet=None,
                      ctlSet=None,
-                     side=None):
+                     side=None,
+                     gearMulMatrix=True):
     """Create a tweak joint attached to the mesh using a rivet
 
     Args:
@@ -128,13 +138,17 @@ def createRivetTweak(mesh,
         edgePair (pari list): The edge pairt to create the rivet
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
+        parentJnt (None or dagNode, optional): The parent for the joints
         ctlParent (None or dagNode, optional): The parent for the tweak control
         color (list, optional): The color for the control
         size (float, optional): Size of the control
-        defSet (None, optional): Deformer set to add the joints
+        defSet (None or set, optional): Deformer set to add the joints
+        ctlSet (None or set, optional): the set to add the controls
         side (None, str): String to set the side. Valid values are L, R or C.
             If the side is not set or the value is not valid, the side will be
             set automatically based on the world position
+        gearMulMatrix (bool, optional): If False will use Maya default multiply
+            matrix node
 
     Returns:
         PyNode: The tweak control
@@ -157,40 +171,102 @@ def createRivetTweak(mesh,
     nameSide = name + "_tweak_" + side
     pm.rename(base, nameSide)
 
+    if not ctlParent:
+        ctlParent = base
+        ctl_parent_tag = None
+    else:
+        ctl_parent_tag = ctlParent
+
     # Joints NPO
     npo = pm.PyNode(pm.createNode("transform",
                                   n=nameSide + "_npo",
                                   p=ctlParent,
                                   ss=True))
-    pm.pointConstraint(base, npo)
-
-    # set proper orientation
-    pos = base.getTranslation(space="world")
-    temp = pm.spaceLocator()
-    pm.parent(temp, base)
-    temp.attr("ty").set(0)
-    temp.attr("tz").set(0)
-    temp.attr("tx").set(1)
-    lookat = temp.getTranslation(space="world")
-
-    up = datatypes.Vector(0, 1, 0)
-
-    t = transform.getTransformLookingAt(pos,
-                                        lookat,
-                                        up,
-                                        axis="xy",
-                                        negate=False)
-    npo.setMatrix(t, worldSpace=True)
-    pm.delete(temp)
+    pm.pointConstraint(base, npo, mo=False)
 
     # create joints
     if not parentJnt:
         parentJnt = npo
-    #TODO: if parent is different than ctl npo we should connect the jntBase in
-    # world space to align with npo
+        matrix_cnx = False
+    else:
+        # need extra connection to ensure is moving with th npo, even is
+        # not child of npo
+        matrix_cnx = True
 
     jointBase = primitive.addJoint(parentJnt, nameSide + "_jnt_lvl")
     joint = primitive.addJoint(jointBase, nameSide + "_jnt")
+
+    # reset axis and invert behaviour
+    for axis in "XYZ":
+        pm.setAttr(jointBase + ".jointOrient" + axis, 0)
+        pm.setAttr(npo + ".translate" + axis, 0)
+        # pm.setAttr(jointBase + ".translate" + axis, 0)
+
+    pp = npo.getParent()
+    pm.parent(npo, w=True)
+    for axis in "xyz":
+        npo.attr("r" + axis).set(0)
+    if side == "R":
+        npo.attr("ry").set(180)
+        npo.attr("sz").set(-1)
+    pm.parent(npo, pp)
+
+    dm_node = None
+
+    if matrix_cnx:
+        mulmat_node = applyop.gear_mulmatrix_op(
+            npo + ".worldMatrix", jointBase + ".parentInverseMatrix")
+        dm_node = node.createDecomposeMatrixNode(
+            mulmat_node + ".output")
+        m = mulmat_node.attr('output').get()
+        pm.connectAttr(dm_node + ".outputTranslate", jointBase + ".t")
+        pm.connectAttr(dm_node + ".outputRotate", jointBase + ".r")
+
+        # invert negative scaling in Joints. We only inver Z axis, so is
+        # the only axis that we are checking
+        print dm_node.attr("outputScaleZ").get()
+        if dm_node.attr("outputScaleZ").get() < 0:
+            mul_nod_invert = node.createMulNode(
+                dm_node.attr("outputScaleZ"),
+                -1)
+            out_val = mul_nod_invert.attr("outputX")
+        else:
+            out_val = dm_node.attr("outputScaleZ")
+
+        pm.connectAttr(dm_node.attr("outputScaleX"), jointBase + ".sx")
+        pm.connectAttr(dm_node.attr("outputScaleY"), jointBase + ".sy")
+        pm.connectAttr(out_val, jointBase + ".sz")
+        pm.connectAttr(dm_node + ".outputShear", jointBase + ".shear")
+
+        # Segment scale compensate Off to avoid issues with the global
+        # scale
+        jointBase.setAttr("segmentScaleCompensate", 0)
+        joint.setAttr("segmentScaleCompensate", 0)
+
+        jointBase.setAttr("jointOrient", 0, 0, 0)
+
+        # setting the joint orient compensation in order to have clean
+        # rotation channels
+        jointBase.attr("jointOrientX").set(jointBase.attr("rx").get())
+        jointBase.attr("jointOrientY").set(jointBase.attr("ry").get())
+        jointBase.attr("jointOrientZ").set(jointBase.attr("rz").get())
+
+        im = m.inverse()
+
+        if gearMulMatrix:
+            mul_nod = applyop.gear_mulmatrix_op(
+                mulmat_node.attr('output'), im, jointBase, 'r')
+            dm_node2 = mul_nod.output.listConnections()[0]
+        else:
+            mul_nod = node.createMultMatrixNode(
+                mulmat_node.attr('matrixSum'), im, jointBase, 'r')
+            dm_node2 = mul_nod.matrixSum.listConnections()[0]
+
+        if dm_node.attr("outputScaleZ").get() < 0:
+            negateTransformConnection(dm_node2.outputRotate, jointBase.rotate)
+
+    else:
+        resetJntLocalSRT(jointBase)
 
     # hidding joint base by changing the draw mode
     pm.setAttr(jointBase + ".drawStyle", 2)
@@ -198,7 +274,7 @@ def createRivetTweak(mesh,
         try:
             defSet = pm.PyNode("rig_deformers_grp")
         except TypeError:
-            pm.sets(n="rig_deformers_grp")
+            pm.sets(n="rig_deformers_grp", empty=True)
             defSet = pm.PyNode("rig_deformers_grp")
     pm.sets(defSet, add=joint)
 
@@ -209,8 +285,17 @@ def createRivetTweak(mesh,
                          color,
                          controlType,
                          w=size)
-    for t in [".translate", ".scale", ".rotate"]:
-        pm.connectAttr(o_icon + t, joint + t)
+    transform.resetTransform(o_icon)
+    if dm_node and dm_node.attr("outputScaleZ").get() < 0:
+        pm.connectAttr(o_icon.scale, joint.scale)
+        negateTransformConnection(o_icon.rotate, joint.rotate)
+        negateTransformConnection(o_icon.translate,
+                                  joint.translate,
+                                  [1, 1, -1])
+
+    else:
+        for t in [".translate", ".scale", ".rotate"]:
+            pm.connectAttr(o_icon + t, joint + t)
 
     # create the attributes to handlde mirror and symetrical pose
     attribute.addAttribute(
@@ -233,32 +318,16 @@ def createRivetTweak(mesh,
         o_icon, "invSz", "bool", 0, keyable=False, niceName="Invert Mirror SZ")
 
     # magic of doritos connection
-    doritosMagic(mesh, joint, jointBase)
-
-    # reset axis and inver behaviour
-    for axis in "XYZ":
-        pm.setAttr(jointBase + ".jointOrient" + axis, 0)
-        pm.setAttr(npo + ".translate" + axis, 0)
-        pm.setAttr(jointBase + ".translate" + axis, 0)
-
-    p = o_icon.getParent().getParent()
-    pp = p.getParent()
-    pm.parent(p, w=True)
-    for axis in "xyz":
-        p.attr("r" + axis).set(0)
-    if side == "R":
-        p.attr("ry").set(180)
-        p.attr("sz").set(-1)
-    pm.parent(p, pp)
+    pre_bind_matrix_connect(mesh, joint, jointBase)
 
     # add control tag
-    node.add_controller_tag(o_icon, ctlParent)
+    node.add_controller_tag(o_icon, ctl_parent_tag)
 
     if not ctlSet:
         try:
-            defSet = pm.PyNode("rig_controllers_grp")
+            ctlSet = pm.PyNode("rig_controllers_grp")
         except TypeError:
-            pm.sets(n="rig_controllers_grp")
+            pm.sets(n="rig_controllers_grp", empty=True)
             ctlSet = pm.PyNode("rig_controllers_grp")
     pm.sets(ctlSet, add=o_icon)
 
@@ -275,21 +344,27 @@ def createMirrorRivetTweak(mesh,
                            size=.04,
                            defSet=None,
                            ctlSet=None,
-                           side=None):
+                           side=None,
+                           gearMulMatrix=True):
     """Create a tweak joint attached to the mesh using a rivet.
     The edge pair will be used to find the mirror position on the mesh
 
     Args:
         mesh (mesh): The object to add the tweak
-        edgePair (pari list): The edge pair to create the rivet in mirror side
+        edgePair (pari list): The edge pairt to create the rivet
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
+        parentJnt (None or dagNode, optional): The parent for the joints
         ctlParent (None or dagNode, optional): The parent for the tweak control
         color (list, optional): The color for the control
         size (float, optional): Size of the control
-        defSet (None, optional): Deformer set to add the joints
-        ctlSet (None, optional): Description
-        side (None, optional): Description
+        defSet (None or set, optional): Deformer set to add the joints
+        ctlSet (None or set, optional): the set to add the controls
+        side (None, str): String to set the side. Valid values are L, R or C.
+            If the side is not set or the value is not valid, the side will be
+            set automatically based on the world position
+        gearMulMatrix (bool, optional): If False will use Maya default multiply
+            matrix node
 
     Returns:
         PyNode: The tweak control
@@ -306,11 +381,12 @@ def createMirrorRivetTweak(mesh,
                             size,
                             defSet,
                             ctlSet,
-                            side)
+                            side,
+                            gearMulMatrix)
 
 
 def createRivetTweakFromList(mesh,
-                             edgeIndexPairList,
+                             edgePairList,
                              name,
                              parent=None,
                              parentJnt=None,
@@ -324,23 +400,34 @@ def createRivetTweakFromList(mesh,
                              mParent=None,
                              mParentJnt=None,
                              mCtlParent=None,
-                             mColor=None):
+                             mColor=None,
+                             gearMulMatrix=True):
     """Create multiple rivet tweaks from a list of edge pairs
 
     Args:
         mesh (mesh): The object to add the tweak
-        edgeIndexPairList (list of list): The edge pair list of list
+        edgePairList (list of list): The edge pair list of list
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
+        parentJnt (None or dagNode, optional): The parent for the joints
         ctlParent (None or dagNode, optional): The parent for the tweak control
         color (list, optional): The color for the control
-        size (float, optional): Description
-        defSet (None, optional): Description
-        ctlSet (None, optional): Description
-        side (None, optional): Description
-        mirror (bool, optional): Description
-        mParent (None, optional): Description
-        mColor (None, optional): Description
+        size (float, optional): Size of the control
+        defSet (None or set, optional): Deformer set to add the joints
+        ctlSet (None or set, optional): the set to add the controls
+        side (None, str): String to set the side. Valid values are L, R or C.
+            If the side is not set or the value is not valid, the side will be
+            set automatically based on the world position
+        mirror (bool, optional): Create the mirror tweak on X axis symmetry
+        mParent (None, optional): Mirror tweak parent, if None will use
+            parent arg
+        mParentJnt (None, optional): Mirror  parent joint, if None will use
+            parentJnt arg
+        mCtlParent (None, optional): Mirror ctl parent, if None will use
+            ctlParent arg
+        mColor (None, optional): Mirror controls color, if None will color arg
+        gearMulMatrix (bool, optional): If False will use Maya default multiply
+            matrix node
 
     Returns:
         TYPE: Description
@@ -351,22 +438,37 @@ def createRivetTweakFromList(mesh,
         mCtlParent = ctlParent
     if not mColor:
         mColor = color
+    if not mParentJnt:
+        mParentJnt = parentJnt
+
     ctlList = []
-    for i, pair in enumerate(edgeIndexPairList):
+    for i, pair in enumerate(edgePairList):
         ctl = createRivetTweak(mesh,
                                [pair[0], pair[1]],
                                name + str(i).zfill(3),
-                               parent,
-                               ctlParent,
-                               color)  # need to add al args
+                               parent=parent,
+                               parentJnt=parentJnt,
+                               ctlParent=ctlParent,
+                               color=color,
+                               size=size,
+                               defSet=defSet,
+                               ctlSet=ctlSet,
+                               side=side,
+                               gearMulMatrix=gearMulMatrix)
         ctlList.append(ctl)
         if mirror:
             m_ctl = createMirrorRivetTweak(mesh,
                                            [pair[0], pair[1]],
                                            name + str(i).zfill(3),
-                                           mParent,
-                                           mCtlParent,
-                                           mColor)  # add all args
+                                           parent=mParent,
+                                           parentJnt=mParentJnt,
+                                           ctlParent=mCtlParent,
+                                           color=mColor,
+                                           size=size,
+                                           defSet=defSet,
+                                           ctlSet=ctlSet,
+                                           side=side,
+                                           gearMulMatrix=gearMulMatrix)
             ctlList.append(m_ctl)
 
     return ctlList
@@ -374,8 +476,8 @@ def createRivetTweakFromList(mesh,
 
 def createRivetTweakLayer(layerMesh,
                           bst,
-                          edgeList,
-                          tweakName,
+                          edgePairList,
+                          name,
                           parent=None,
                           parentJnt=None,
                           ctlParent=None,
@@ -389,23 +491,38 @@ def createRivetTweakLayer(layerMesh,
                           mParentJnt=None,
                           mCtlParent=None,
                           mColor=None,
+                          gearMulMatrix=True,
                           static_jnt=None):
-    """Create a rivet tweak layer
+    """Create a rivet tweak layer setup
 
     Args:
         layerMesh (mesh): The tweak layer mesh
         bst (mesh): The mesh blendshape target
-        edgeList (list): List of edges
-        tweakName (string): The name for the tweak
+        edgePairList (list of list): The edge pair list of list
+        name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
-        ctlParent (None or dagNode, optional): the parent for the tweak control
-        color (list, optional): Description
-        size (float, optional): Description
-        defSet (None, optional): Description
-        ctlSet (None, optional): Description
-        side (None, optional): Description
-        mirror (bool, optional): Description
+        parentJnt (None or dagNode, optional): The parent for the joints
+        ctlParent (None or dagNode, optional): The parent for the tweak control
+        color (list, optional): The color for the control
+        size (float, optional): Size of the control
+        defSet (None or set, optional): Deformer set to add the joints
+        ctlSet (None or set, optional): the set to add the controls
+        side (None, str): String to set the side. Valid values are L, R or C.
+            If the side is not set or the value is not valid, the side will be
+            set automatically based on the world position
+        mirror (bool, optional): Create the mirror tweak on X axis symmetry
+        mParent (None, optional): Mirror tweak parent, if None will use
+            parent arg
+        mParentJnt (None, optional): Mirror  parent joint, if None will use
+            parentJnt arg
+        mCtlParent (None, optional): Mirror ctl parent, if None will use
+            ctlParent arg
+        mColor (None, optional): Mirror controls color, if None will color arg
+        gearMulMatrix (bool, optional): If False will use Maya default multiply
+            matrix node
+        static_jnt (dagNode, optional): Static joint for the setup
     """
+
     # Apply blendshape from blendshapes layer mesh
     blendShapes.connectWithBlendshape(layerMesh, bst)
 
@@ -428,22 +545,37 @@ def createRivetTweakLayer(layerMesh,
                    n='%s_skinCluster' % layerMesh.name())
 
     # create doritos
+    if not mParent:
+        mParent = parent
+    if not mCtlParent:
+        mCtlParent = ctlParent
+    if not mColor:
+        mColor = color
+    if not mParentJnt:
+        mParentJnt = parentJnt
+
     createRivetTweakFromList(layerMesh,
-                             edgeList,
-                             tweakName,
-                             parent,
-                             ctlParent,
-                             color,
-                             size,
-                             defSet,
-                             ctlSet,
-                             side,
-                             mirror)
+                             edgePairList,
+                             name,
+                             parent=parent,
+                             parentJnt=parentJnt,
+                             ctlParent=ctlParent,
+                             color=color,
+                             size=size,
+                             defSet=defSet,
+                             ctlSet=ctlSet,
+                             side=side,
+                             mirror=mirror,
+                             mParent=mParent,
+                             mParentJnt=mParentJnt,
+                             mCtlParent=mCtlParent,
+                             mColor=mColor,
+                             gearMulMatrix=gearMulMatrix)
 
 # Helpers
 
 
-def edgePairList():
+def edgePairList(log=True):
     """Print and return a list of edge pairs to be use with
     createRivetTweakLayer and createRivetTweakFromList
 
@@ -456,5 +588,19 @@ def edgePairList():
         a = edge[i].index()
         b = edge[i + 1].index()
         edgePairList.append([a, b])
-    print edgePairList
+    if log:
+        print edgePairList
     return edgePairList
+
+
+def negateTransformConnection(in_rot, out_rot, neg_axis=[-1, -1, 1]):
+    neg_rot_node = pm.createNode("multiplyDivide")
+    pm.setAttr(neg_rot_node + ".operation", 1)
+    pm.connectAttr(in_rot,
+                   neg_rot_node + ".input1",
+                   f=True)
+    for v, axis in zip(neg_axis, "XYZ"):
+        pm.setAttr(neg_rot_node + ".input2" + axis, v)
+    pm.connectAttr(neg_rot_node + ".output",
+                   out_rot,
+                   f=True)
