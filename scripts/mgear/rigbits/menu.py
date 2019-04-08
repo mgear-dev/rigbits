@@ -8,7 +8,8 @@ from mgear.rigbits import (rbf_manager_ui,
                            lips_rigger,
                            channelWrangler,
                            proxySlicer,
-                           utils)
+                           utils,
+                           mirror_controls)
 from mgear.core import string
 from functools import partial
 
@@ -25,6 +26,7 @@ def install():
         ("-----", None),
         (None, gimmick_submenu),
         ("-----", None),
+        ("Mirror Controls", mirror_controls.show),
         ("Replace Shape", rigbits.replaceShape),
         ("-----", None),
         ("Match All Transform", rigbits.matchWorldXform),
