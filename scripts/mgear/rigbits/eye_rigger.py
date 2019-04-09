@@ -856,7 +856,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.extCorner_button = QtWidgets.QPushButton("<<")
 
         # Blink heigh slider
-        self.blinkHeigh_group = QtWidgets.QGroupBox("Blink High")
+        self.blinkHeigh_group = QtWidgets.QGroupBox("Blink Height")
         self.blinkHeight_value = QtWidgets.QSpinBox()
         self.blinkHeight_value.setRange(0, 100)
         self.blinkHeight_value.setSingleStep(10)
