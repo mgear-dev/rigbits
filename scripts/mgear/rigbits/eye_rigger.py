@@ -661,7 +661,6 @@ def eyeRig(eyeMesh,
                                              "float",
                                              .02,
                                              minValue=0,
-                                             maxValue=1,
                                              keyable=False,
                                              channelBox=True)
     upHTracking_att = attribute.addAttribute(up_ctl,
@@ -669,7 +668,6 @@ def eyeRig(eyeMesh,
                                              "float",
                                              .01,
                                              minValue=0,
-                                             maxValue=1,
                                              keyable=False,
                                              channelBox=True)
 
@@ -678,7 +676,6 @@ def eyeRig(eyeMesh,
                                               "float",
                                               .01,
                                               minValue=0,
-                                              maxValue=1,
                                               keyable=False,
                                               channelBox=True)
     lowHTracking_att = attribute.addAttribute(low_ctl,
@@ -686,7 +683,6 @@ def eyeRig(eyeMesh,
                                               "float",
                                               .01,
                                               minValue=0,
-                                              maxValue=1,
                                               keyable=False,
                                               channelBox=True)
 
