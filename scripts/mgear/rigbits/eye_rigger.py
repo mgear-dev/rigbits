@@ -860,7 +860,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.extCorner_button = QtWidgets.QPushButton("<<")
 
         # Blink heigh slider
-        self.blinkHeigh_group = QtWidgets.QGroupBox("Blink Height")
+        self.blinkHeight_group = QtWidgets.QGroupBox("Blink Height")
         self.blinkHeight_value = QtWidgets.QSpinBox()
         self.blinkHeight_value.setRange(0, 100)
         self.blinkHeight_value.setSingleStep(10)
@@ -962,12 +962,13 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         geometryInput_layout.addLayout(edgeloop_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
-        # Blink High Layout
+        # Blink Height Layout
         blinkHeight_layout = QtWidgets.QHBoxLayout()
         blinkHeight_layout.setContentsMargins(1, 1, 1, 1)
         blinkHeight_layout.addWidget(self.blinkHeight_value)
         blinkHeight_layout.addWidget(self.blinkHeight_slider)
-        self.blinkHeigh_group.setLayout(blinkHeight_layout)
+        self.blinkHeight_group.setLayout(blinkHeight_layout)
+
         # Tracking Layout
         tracking_layout = QtWidgets.QVBoxLayout()
         layout = QtWidgets.QHBoxLayout()
@@ -1047,7 +1048,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         options_layout.setContentsMargins(6, 1, 6, 2)
         options_layout.addLayout(parent_layout)
         options_layout.addLayout(offset_layout)
-        options_layout.addWidget(self.blinkHeigh_group)
+        options_layout.addWidget(self.blinkHeight_group)
         options_layout.addWidget(self.tracking_group)
         options_layout.addWidget(self.sideRange_check)
         options_layout.addLayout(ctlGrp_layout)
