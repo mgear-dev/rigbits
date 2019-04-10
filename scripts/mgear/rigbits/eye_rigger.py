@@ -4,6 +4,7 @@ import json
 import traceback
 from functools import partial
 
+import mgear
 import mgear.core.pyqt as gqt
 import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
@@ -351,11 +352,17 @@ def eyeRig(eyeMesh=None,
         tt = t
     aimTrigger_root = primitive.addTransform(
         center_lookat, setName("aimTrigger_root"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_root)
     aimTrigger_lvl = primitive.addTransform(
         aimTrigger_root, setName("aimTrigger_lvl"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_lvl)
     aimTrigger_lvl.attr("tz").set(1.0)
     aimTrigger_ref = primitive.addTransform(
         aimTrigger_lvl, setName("aimTrigger_ref"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_ref)
     aimTrigger_ref.attr("tz").set(0.0)
     # connect  trigger with arrow_ctl
     pm.parentConstraint(arrow_ctl, aimTrigger_ref, mo=True)
