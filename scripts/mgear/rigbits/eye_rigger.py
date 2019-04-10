@@ -559,13 +559,13 @@ def eyeRig(eyeMesh=None,
     bs_mid[0].attr(upTarget.name()).set(blinkH)
 
     # joints root
-    jnt_root = None
+    jnt_root = primitive.addTransformFromPos(
+        eye_root, setName("joints"), pos=bboxCenter
+    )
     if deformers_group:
-        jnt_root = pm.PyNode(deformers_group)
-    else:
-        jnt_root = primitive.addTransformFromPos(
-            eye_root, setName("joints"), pos=bboxCenter
-        )
+        deformers_group = pm.PyNode(deformers_group)
+        pm.parentConstraint(eye_root, jnt_root, mo=True)
+        deformers_group.addChild(jnt_root)
 
     # head joint
     if headJnt:
