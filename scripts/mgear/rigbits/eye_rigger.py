@@ -1271,10 +1271,10 @@ def showEyeRigUI(*args):
 
 
 if __name__ == "__main__":
-    #showEyeRigUI()
+    showEyeRigUI()
 
-    path = r"C:\Users\admin\Desktop\temp.eyes"
-    eyesFromfile(path)
+    # path = r"C:\Users\admin\Desktop\temp.eyes"
+    # eyesFromfile(path)
 
     # path = "C:\\Users\\miquel\\Desktop\\eye_R.eyes"
     # eyesFromfile(path)
