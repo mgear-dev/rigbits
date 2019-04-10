@@ -61,8 +61,14 @@ def eyeRig(eyeMesh=None,
         customCorner (bool, optional): Description
         intCorner (None, optional): Description
         extCorner (None, optional): Description
-        ctlGrp (None, optional): Description
-        defGrp (None, optional): Description
+        ctlSet (None, optional): Description
+        defSet (None, optional): Description
+        upperVTrack (None, optional): Description
+        upperHTrack (None, optional): Description
+        lowerVTrack (None, optional): Description
+        lowerHTrack (None, optional): Description
+        aim_controller (None, optional): Description
+        deformers_group (None, optional): Description
 
     Returns:
         TYPE: Description
