@@ -817,38 +817,34 @@ def eyeRig(eyeMesh=None,
                                          n='skinClsEye')
 
 
-class widget_get_set(object):
+def widget_get(widget):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox):
+        return widget.value()
+    if isinstance(widget, QtWidgets.QSpinBox):
+        return widget.value()
+    if isinstance(widget, QtWidgets.QLineEdit):
+        return widget.text()
+    if isinstance(widget, QtWidgets.QCheckBox):
+        return widget.isChecked()
 
-    def __init__(self, widget):
-        self.widget = widget
+    return None
 
-    def get(self):
-        if isinstance(self.widget, QtWidgets.QDoubleSpinBox):
-            return self.widget.value()
-        if isinstance(self.widget, QtWidgets.QSpinBox):
-            return self.widget.value()
-        if isinstance(self.widget, QtWidgets.QLineEdit):
-            return self.widget.text()
-        if isinstance(self.widget, QtWidgets.QCheckBox):
-            return self.widget.isChecked()
 
-        return None
+def widget_set(widget, value):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox):
+        widget.setValue(value)
+        return
+    if isinstance(widget, QtWidgets.QSpinBox):
+        widget.setValue(value)
+        return
+    if isinstance(widget, QtWidgets.QLineEdit):
+        widget.setText(value)
+        return
+    if isinstance(widget, QtWidgets.QCheckBox):
+        widget.setChecked(value)
+        return
 
-    def set(self, value):
-        if isinstance(self.widget, QtWidgets.QDoubleSpinBox):
-            self.widget.setValue(value)
-            return
-        if isinstance(self.widget, QtWidgets.QSpinBox):
-            self.widget.setValue(value)
-            return
-        if isinstance(self.widget, QtWidgets.QLineEdit):
-            self.widget.setText(value)
-            return
-        if isinstance(self.widget, QtWidgets.QCheckBox):
-            self.widget.setChecked(value)
-            return
-
-        raise ValueError("Widget {0} was not recognized.".format(self.widget))
+    raise ValueError("Widget {0} was not recognized.".format(widget))
 
 ##########################################################
 # Eye Rig UI
@@ -1213,7 +1209,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def populateDict(self):
         settings = {}
         for attr, widget in self.__dict__.iteritems():
-            value = widget_get_set(widget).get()
+            value = widget_get(widget)
             if value is not None:
                 settings[attr] = value
 
@@ -1257,7 +1253,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if attr not in settings.keys():
                 continue
 
-            widget_get_set(widget).set(settings[attr])
+            widget_set(widget, settings[attr])
 
 
 # build lips from json file:
