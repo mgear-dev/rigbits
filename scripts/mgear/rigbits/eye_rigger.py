@@ -719,11 +719,21 @@ def eyeRig(eyeMesh=None,
     mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("ty"))
     mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(
+            mult_node.attr("outputX"), -1
+        )
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("tx"))
 
     mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("ty"))
     mult_node = node.createMulNode(lowHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(
+            mult_node.attr("outputX"), -1
+        )
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
 
     # Tension on blink
