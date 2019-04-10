@@ -40,7 +40,8 @@ def eyeRig(eyeMesh=None,
            upperVTrack=1,
            upperHTrack=0.5,
            lowerVTrack=1,
-           lowerHTrack=0.5):
+           lowerHTrack=0.5,
+           aim_controller=""):
 
     """Create eyelid and eye rig
 
@@ -312,14 +313,24 @@ def eyeRig(eyeMesh=None,
                                               axis="zy", negate=False)
 
     radius = abs((localBBox[0][0] - localBBox[1][0]) / 1.7)
-    arrow_npo = primitive.addTransform(eye_root, setName("aim_npo"), t_arrow)
-    arrow_ctl = icon.create(arrow_npo,
-                            setName("aim_%s" % ctlName),
-                            t_arrow,
-                            icon="arrow",
-                            w=1,
-                            po=datatypes.Vector(0, 0, radius),
-                            color=4)
+
+    arrow_ctl = None
+    arrow_npo = None
+    if aim_controller:
+        arrow_ctl = pm.PyNode(aim_controller)
+    else:
+        arrow_npo = primitive.addTransform(
+            eye_root, setName("aim_npo"), t_arrow
+        )
+        arrow_ctl = icon.create(
+            arrow_npo,
+            setName("aim_%s" % ctlName),
+            t_arrow,
+            icon="arrow",
+            w=1,
+            po=datatypes.Vector(0, 0, radius),
+            color=4
+        )
     if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
         pass
     else:
@@ -951,6 +962,9 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.parent_label = QtWidgets.QLabel("Rig Parent:")
         self.parent_node = QtWidgets.QLineEdit()
         self.parent_button = QtWidgets.QPushButton("<<")
+        self.aim_controller_label = QtWidgets.QLabel("Aim Controller:")
+        self.aim_controller = QtWidgets.QLineEdit()
+        self.aim_controller_button = QtWidgets.QPushButton("<<")
         self.ctlShapeOffset_label = QtWidgets.QLabel("Controls Offset:")
         self.offset = QtWidgets.QDoubleSpinBox()
         self.offset.setRange(0, 10)
@@ -1066,6 +1080,9 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         parent_layout.addWidget(self.parent_label)
         parent_layout.addWidget(self.parent_node)
         parent_layout.addWidget(self.parent_button)
+        parent_layout.addWidget(self.aim_controller_label)
+        parent_layout.addWidget(self.aim_controller)
+        parent_layout.addWidget(self.aim_controller_button)
         offset_layout = QtWidgets.QHBoxLayout()
         offset_layout.addWidget(self.ctlShapeOffset_label)
         offset_layout.addWidget(self.offset)
@@ -1127,6 +1144,9 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                                     self.eyeMesh))
         self.parent_button.clicked.connect(partial(self.populate_object,
                                                    self.parent_node))
+        self.aim_controller_button.clicked.connect(
+            partial(self.populate_object, self.aim_controller)
+        )
         self.headJnt_button.clicked.connect(partial(self.populate_object,
                                                     self.headJnt,
                                                     1))
