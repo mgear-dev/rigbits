@@ -35,13 +35,14 @@ def eyeRig(eyeMesh=None,
            customCorner=False,
            intCorner=None,
            extCorner=None,
-           ctlGrp=None,
-           defGrp=None,
+           ctlSet=None,
+           defSet=None,
            upperVTrack=1,
            upperHTrack=0.5,
            lowerVTrack=1,
            lowerHTrack=0.5,
-           aim_controller=""):
+           aim_controller="",
+           deformers_group=""):
 
     """Create eyelid and eye rig
 
@@ -238,20 +239,20 @@ def eyeRig(eyeMesh=None,
     dRadius = abs((localBBox[0][1] - localBBox[1][1]) / 1.7)
 
     # Groups
-    if not ctlGrp:
-        ctlGrp = "rig_controllers_grp"
+    if not ctlSet:
+        ctlSet = "rig_controllers_grp"
     try:
-        ctlSet = pm.PyNode(ctlGrp)
+        ctlSet = pm.PyNode(ctlSet)
     except pm.MayaNodeError:
-        pm.sets(n=ctlGrp, em=True)
-        ctlSet = pm.PyNode(ctlGrp)
-    if not defGrp:
-        defGrp = "rig_deformers_grp"
+        pm.sets(n=ctlSet, em=True)
+        ctlSet = pm.PyNode(ctlSet)
+    if not defSet:
+        defSet = "rig_deformers_grp"
     try:
-        defset = pm.PyNode(defGrp)
+        defset = pm.PyNode(defSet)
     except pm.MayaNodeError:
-        pm.sets(n=defGrp, em=True)
-        defset = pm.PyNode(defGrp)
+        pm.sets(n=defSet, em=True)
+        defset = pm.PyNode(defSet)
 
     # Calculate center looking at
     averagePosition = ((upPos.getPosition(space='world')
@@ -551,8 +552,13 @@ def eyeRig(eyeMesh=None,
     bs_mid[0].attr(upTarget.name()).set(blinkH)
 
     # joints root
-    jnt_root = primitive.addTransformFromPos(
-        eye_root, setName("joints"), pos=bboxCenter)
+    jnt_root = None
+    if deformers_group:
+        jnt_root = pm.PyNode(deformers_group)
+    else:
+        jnt_root = primitive.addTransformFromPos(
+            eye_root, setName("joints"), pos=bboxCenter
+        )
 
     # head joint
     if headJnt:
@@ -980,13 +986,17 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "Use Z axis for wide calculation (i.e: Horse and fish side eyes)")
         self.sideRange.setChecked(False)
 
-        self.ctlGrp_label = QtWidgets.QLabel("Controls Group:")
-        self.ctlGrp = QtWidgets.QLineEdit()
-        self.ctlGrp_button = QtWidgets.QPushButton("<<")
+        self.ctlSet_label = QtWidgets.QLabel("Controls Set:")
+        self.ctlSet = QtWidgets.QLineEdit()
+        self.ctlSet_button = QtWidgets.QPushButton("<<")
 
-        self.deformersGrp_label = QtWidgets.QLabel("Deformers Group:")
-        self.defGrp = QtWidgets.QLineEdit()
-        self.deformersGrp_button = QtWidgets.QPushButton("<<")
+        self.deformersSet_label = QtWidgets.QLabel("Deformers Set:")
+        self.defSet = QtWidgets.QLineEdit()
+        self.deformersSet_button = QtWidgets.QPushButton("<<")
+
+        self.deformers_group_label = QtWidgets.QLabel("Deformers Group:")
+        self.deformers_group = QtWidgets.QLineEdit()
+        self.deformers_group_button = QtWidgets.QPushButton("<<")
 
         # Main buttons
         self.build_button = QtWidgets.QPushButton("Build Eye Rig")
@@ -1092,14 +1102,17 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         offset_layout = QtWidgets.QHBoxLayout()
         offset_layout.addWidget(self.ctlShapeOffset_label)
         offset_layout.addWidget(self.offset)
-        ctlGrp_layout = QtWidgets.QHBoxLayout()
-        ctlGrp_layout.addWidget(self.ctlGrp_label)
-        ctlGrp_layout.addWidget(self.ctlGrp)
-        ctlGrp_layout.addWidget(self.ctlGrp_button)
+        ctlSet_layout = QtWidgets.QHBoxLayout()
+        ctlSet_layout.addWidget(self.ctlSet_label)
+        ctlSet_layout.addWidget(self.ctlSet)
+        ctlSet_layout.addWidget(self.ctlSet_button)
         deformersGrp_layout = QtWidgets.QHBoxLayout()
-        deformersGrp_layout.addWidget(self.deformersGrp_label)
-        deformersGrp_layout.addWidget(self.defGrp)
-        deformersGrp_layout.addWidget(self.deformersGrp_button)
+        deformersGrp_layout.addWidget(self.deformersSet_label)
+        deformersGrp_layout.addWidget(self.defSet)
+        deformersGrp_layout.addWidget(self.deformersSet_button)
+        deformersGrp_layout.addWidget(self.deformers_group_label)
+        deformersGrp_layout.addWidget(self.deformers_group)
+        deformersGrp_layout.addWidget(self.deformers_group_button)
 
         options_layout = QtWidgets.QVBoxLayout()
         options_layout.setContentsMargins(6, 1, 6, 2)
@@ -1108,7 +1121,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         options_layout.addWidget(self.blinkHeight_group)
         options_layout.addWidget(self.tracking_group)
         options_layout.addWidget(self.sideRange)
-        options_layout.addLayout(ctlGrp_layout)
+        options_layout.addLayout(ctlSet_layout)
         options_layout.addLayout(deformersGrp_layout)
         self.options_group.setLayout(options_layout)
 
@@ -1170,11 +1183,14 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                                       self.extCorner,
                                                       "vertex"))
 
-        self.ctlGrp_button.clicked.connect(partial(self.populate_element,
-                                                   self.ctlGrp,
+        self.ctlSet_button.clicked.connect(partial(self.populate_element,
+                                                   self.ctlSet,
                                                    "objectSet"))
-        self.deformersGrp_button.clicked.connect(partial(
-            self.populate_element, self.defGrp, "objectSet"))
+        self.deformersSet_button.clicked.connect(partial(
+            self.populate_element, self.defSet, "objectSet"))
+        self.deformers_group_button.clicked.connect(
+            partial(self.populate_element, self.deformers_group)
+        )
 
     # SLOTS ##########################################################
     def populate_element(self, lEdit, oType="transform"):
