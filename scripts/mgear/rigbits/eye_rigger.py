@@ -36,7 +36,11 @@ def eyeRig(eyeMesh,
            intCorner=None,
            extCorner=None,
            ctlGrp=None,
-           defGrp=None):
+           defGrp=None,
+           upperVTrack=1,
+           upperHTrack=0.5,
+           lowerVTrack=1,
+           lowerHTrack=0.5):
 
     """Create eyelid and eye rig
 
@@ -659,14 +663,14 @@ def eyeRig(eyeMesh,
     upVTracking_att = attribute.addAttribute(up_ctl,
                                              "vTracking",
                                              "float",
-                                             .02,
+                                             upperVTrack,
                                              minValue=0,
                                              keyable=False,
                                              channelBox=True)
     upHTracking_att = attribute.addAttribute(up_ctl,
                                              "hTracking",
                                              "float",
-                                             .01,
+                                             upperHTrack,
                                              minValue=0,
                                              keyable=False,
                                              channelBox=True)
@@ -674,14 +678,14 @@ def eyeRig(eyeMesh,
     lowVTracking_att = attribute.addAttribute(low_ctl,
                                               "vTracking",
                                               "float",
-                                              .01,
+                                              lowerVTrack,
                                               minValue=0,
                                               keyable=False,
                                               channelBox=True)
     lowHTracking_att = attribute.addAttribute(low_ctl,
                                               "hTracking",
                                               "float",
-                                              .01,
+                                              lowerHTrack,
                                               minValue=0,
                                               keyable=False,
                                               channelBox=True)
@@ -867,6 +871,17 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.blinkHeight_slider.maximum() / 10.0)
         self.blinkHeight_slider.setValue(20)
 
+        # vTrack and hTrack
+        self.tracking_group = QtWidgets.QGroupBox("Tracking")
+        self.upperVTrack_spinbox = QtWidgets.QDoubleSpinBox()
+        self.upperVTrack_spinbox.setValue(1)
+        self.upperHTrack_spinbox = QtWidgets.QDoubleSpinBox()
+        self.upperHTrack_spinbox.setValue(0.5)
+        self.lowerVTrack_spinbox = QtWidgets.QDoubleSpinBox()
+        self.lowerVTrack_spinbox.setValue(1)
+        self.lowerHTrack_spinbox = QtWidgets.QDoubleSpinBox()
+        self.lowerHTrack_spinbox.setValue(0.5)
+
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
         self.prefix_lineEdit = QtWidgets.QLineEdit()
@@ -953,6 +968,21 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         blinkHeight_layout.addWidget(self.blinkHeight_value)
         blinkHeight_layout.addWidget(self.blinkHeight_slider)
         self.blinkHeigh_group.setLayout(blinkHeight_layout)
+        # Tracking Layout
+        tracking_layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Upper Vertical"))
+        layout.addWidget(self.upperVTrack_spinbox)
+        layout.addWidget(QtWidgets.QLabel("Upper Horizontal"))
+        layout.addWidget(self.upperHTrack_spinbox)
+        tracking_layout.addLayout(layout)
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Lower Vertical"))
+        layout.addWidget(self.lowerVTrack_spinbox)
+        layout.addWidget(QtWidgets.QLabel("Lower Horizontal"))
+        layout.addWidget(self.lowerHTrack_spinbox)
+        tracking_layout.addLayout(layout)
+        self.tracking_group.setLayout(tracking_layout)
 
         # joints Layout
         headJnt_layout = QtWidgets.QHBoxLayout()
@@ -1018,6 +1048,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         options_layout.addLayout(parent_layout)
         options_layout.addLayout(offset_layout)
         options_layout.addWidget(self.blinkHeigh_group)
+        options_layout.addWidget(self.tracking_group)
         options_layout.addWidget(self.sideRange_check)
         options_layout.addLayout(ctlGrp_layout)
         options_layout.addLayout(deformersGrp_layout)
