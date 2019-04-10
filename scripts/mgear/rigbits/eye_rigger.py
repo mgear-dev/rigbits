@@ -813,6 +813,40 @@ def eyeRig(eyeMesh,
                                          nw=1,
                                          n='skinClsEye')
 
+
+class widget_get_set(object):
+
+    def __init__(self, widget):
+        self.widget = widget
+
+    def get(self):
+        if isinstance(self.widget, QtWidgets.QDoubleSpinBox):
+            return self.widget.value()
+        if isinstance(self.widget, QtWidgets.QSpinBox):
+            return self.widget.value()
+        if isinstance(self.widget, QtWidgets.QLineEdit):
+            return self.widget.text()
+        if isinstance(self.widget, QtWidgets.QCheckBox):
+            return self.widget.isChecked()
+
+        return None
+
+    def set(self, value):
+        if isinstance(self.widget, QtWidgets.QDoubleSpinBox):
+            self.widget.setValue(value)
+            return
+        if isinstance(self.widget, QtWidgets.QSpinBox):
+            self.widget.setValue(value)
+            return
+        if isinstance(self.widget, QtWidgets.QLineEdit):
+            self.widget.setText(value)
+            return
+        if isinstance(self.widget, QtWidgets.QCheckBox):
+            self.widget.setChecked(value)
+            return
+
+        raise ValueError("Widget {0} was not recognized.".format(self.widget))
+
 ##########################################################
 # Eye Rig UI
 ##########################################################
@@ -935,8 +969,9 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.deformersGrp_lineEdit = QtWidgets.QLineEdit()
         self.deformersGrp_button = QtWidgets.QPushButton("<<")
 
-        # Build button
+        # Main buttons
         self.build_button = QtWidgets.QPushButton("Build Eye Rig")
+        self.import_button = QtWidgets.QPushButton("Import Config from json")
         self.export_button = QtWidgets.QPushButton("Export Config to json")
 
     def create_layout(self):
@@ -1078,6 +1113,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(self.joints_group)
         main_layout.addWidget(self.topoSkin_group)
         main_layout.addWidget(self.build_button)
+        main_layout.addWidget(self.import_button)
         main_layout.addWidget(self.export_button)
 
         self.setLayout(main_layout)
@@ -1099,6 +1135,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.edgeloop_button.clicked.connect(self.populate_edgeloop)
 
         self.build_button.clicked.connect(self.buildRig)
+        self.import_button.clicked.connect(self.importDict)
         self.export_button.clicked.connect(self.exportDict)
 
         self.intCorner_button.clicked.connect(partial(self.populate_element,
@@ -1171,29 +1208,17 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("Please select first the eyelid edge loop.")
 
     def populateDict(self):
-        self.buildDict = {}
-        blinkH = float(self.blinkHeight_value.value()) / 100.0
-        self.buildDict["eye"] = [self.eyeball_lineEdit.text(),
-                                 self.edgeloop_lineEdit.text(),
-                                 blinkH,
-                                 self.prefix_lineEdit.text(),
-                                 self.ctlShapeOffset_value.value(),
-                                 self.rigidLoops_value.value(),
-                                 self.falloffLoops_value.value(),
-                                 self.headJnt_lineEdit.text(),
-                                 self.topSkin_check.isChecked(),
-                                 self.parent_lineEdit.text(),
-                                 self.control_lineEdit.text(),
-                                 self.sideRange_check.isChecked(),
-                                 self.manualCorners_check.isChecked(),
-                                 self.intCorner_lineEdit.text(),
-                                 self.extCorner_lineEdit.text(),
-                                 self.ctlGrp_lineEdit.text(),
-                                 self.deformersGrp_lineEdit.text()]
+        settings = {}
+        for attr, widget in self.__dict__.iteritems():
+            value = widget_get_set(widget).get()
+            if value is not None:
+                settings[attr] = value
+
+        self.buildDict = settings
 
     def buildRig(self):
         self.populateDict()
-        eyeRig(*self.buildDict["eye"])
+        eyeRig(*self.buildDict)
 
     def exportDict(self):
         self.populateDict()
@@ -1211,11 +1236,31 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         f.write(data_string)
         f.close()
 
+    def importDict(self):
+        filePath = pm.fileDialog2(
+            dialogStyle=2,
+            fileMode=1,
+            fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
+        if not filePath:
+            return
+        if not isinstance(filePath, basestring):
+            filePath = filePath[0]
+
+        settings = {}
+        with open(filePath, "r") as f:
+            settings = json.load(f)
+
+        for attr, widget in self.__dict__.iteritems():
+            if attr not in settings.keys():
+                continue
+
+            widget_get_set(widget).set(settings[attr])
+
 
 # build lips from json file:
 def eyesFromfile(path):
     buildDict = json.load(open(path))
-    eyeRig(*buildDict["eye"])
+    eyeRig(*buildDict)
 
 
 def showEyeRigUI(*args):
