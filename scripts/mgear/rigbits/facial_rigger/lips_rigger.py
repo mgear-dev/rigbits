@@ -296,7 +296,7 @@ def rig(edge_loop="",
                      ["lowInner", "L", "circle", 14, .03, []],
                      ["lowOuter", "L", "circle", 14, .03, []]]
 
-    params = ["tx", "ty", "tz"]
+    params = ["tx", "ty", "tz", "rx", "ry", "rz"]
 
     # upper controls
     cvs = upCrv_ctl.getCVs(space="world")
