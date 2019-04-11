@@ -13,23 +13,25 @@ from mgear import rigbits
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, vector
 
+from . import lib
+
 ##########################################################
 # Lips rig constructor
 ##########################################################
 
 
-def lipsRig(eLoop,
-            upVertex,
-            lowVertex,
-            namePrefix,
-            thickness,
-            doSkin,
-            rigidLoops,
-            falloffLoops,
-            headJnt=None,
-            jawJnt=None,
-            parent=None,
-            ctlName="ctl"):
+def rig(edge_loop="",
+        up_vertex="",
+        low_vertex="",
+        name_prefix="",
+        thickness=0.3,
+        do_skin=True,
+        rigid_loops=5,
+        falloff_loops=8,
+        head_joint=None,
+        jaw_joint=None,
+        parent_node=None,
+        control_name="ctl"):
 
     ######
     # Var
@@ -42,7 +44,7 @@ def lipsRig(eLoop,
     # Helper functions
     ##################
     def setName(name, side="C", idx=None):
-        namesList = [namePrefix, side, name]
+        namesList = [name_prefix, side, name]
         if idx is not None:
             namesList[1] = side + str(idx)
         name = "_".join(namesList)
@@ -53,9 +55,9 @@ def lipsRig(eLoop,
     ##############
 
     # Loop
-    if eLoop:
+    if edge_loop:
         try:
-            eLoop = [pm.PyNode(e) for e in eLoop.split(",")]
+            edge_loop = [pm.PyNode(e) for e in edge_loop.split(",")]
         except pm.MayaNodeError:
             pm.displayWarning(
                 "Some of the edges listed in edge loop can not be found")
@@ -65,47 +67,49 @@ def lipsRig(eLoop,
         return
 
     # Vertex
-    if upVertex:
+    if up_vertex:
         try:
-            upVertex = pm.PyNode(upVertex)
+            up_vertex = pm.PyNode(up_vertex)
         except pm.MayaNodeError:
-            pm.displayWarning("%s can not be found" % upVertex)
+            pm.displayWarning("%s can not be found" % up_vertex)
             return
     else:
         pm.displayWarning("Please set the upper lip central vertex")
         return
 
-    if lowVertex:
+    if low_vertex:
         try:
-            lowVertex = pm.PyNode(lowVertex)
+            low_vertex = pm.PyNode(low_vertex)
         except pm.MayaNodeError:
-            pm.displayWarning("%s can not be found" % lowVertex)
+            pm.displayWarning("%s can not be found" % low_vertex)
             return
     else:
         pm.displayWarning("Please set the lower lip central vertex")
         return
 
     # skinnign data
-    if doSkin:
-        if not headJnt:
+    if do_skin:
+        if not head_joint:
             pm.displayWarning("Please set the Head Jnt or unCheck Compute "
                               "Topological Autoskin")
             return
         else:
             try:
-                headJnt = pm.PyNode(headJnt)
+                head_joint = pm.PyNode(head_joint)
             except pm.MayaNodeError:
-                pm.displayWarning("Head Joint: %s can not be found" % headJnt)
+                pm.displayWarning(
+                    "Head Joint: %s can not be found" % head_joint
+                )
                 return
-        if not jawJnt:
+        if not jaw_joint:
             pm.displayWarning("Please set the Jaw Jnt or unCheck Compute "
                               "Topological Autoskin")
             return
         else:
             try:
-                jawJnt = pm.PyNode(jawJnt)
+                jaw_joint = pm.PyNode(jaw_joint)
             except pm.MayaNodeError:
-                pm.displayWarning("Jaw Joint: %s can not be found" % jawJnt)
+                pm.displayWarning("Jaw Joint: %s can not be found" % jaw_joint)
                 return
     # check if the rig already exist in the current scene
     if pm.ls(setName("root")):
@@ -123,7 +127,7 @@ def lipsRig(eLoop,
     #####################
     # Geometry
     #####################
-    geo = pm.listRelatives(eLoop[0], parent=True)[0]
+    geo = pm.listRelatives(edge_loop[0], parent=True)[0]
 
     #####################
     # Groups
@@ -144,15 +148,15 @@ def lipsRig(eLoop,
     #####################
 
     # get extreme position using the outer loop
-    extr_v = meshNavigation.getExtremeVertexFromLoop(eLoop)
+    extr_v = meshNavigation.getExtremeVertexFromLoop(edge_loop)
     upPos = extr_v[0]
     lowPos = extr_v[1]
     inPos = extr_v[2]
     outPos = extr_v[3]
     edgeList = extr_v[4]
     vertexList = extr_v[5]
-    upPos = upVertex
-    lowPos = lowVertex
+    upPos = up_vertex
+    lowPos = low_vertex
 
     # upper crv
     upLip_edgeRange = meshNavigation.edgeRangeInLoopFromMid(edgeList,
@@ -320,7 +324,7 @@ def lipsRig(eLoop,
                                      t)
         upNpo.append(npo)
         ctl = icon.create(npo,
-                          setName("%s_%s" % (oName, ctlName), oSide),
+                          setName("%s_%s" % (oName, control_name), oSide),
                           t,
                           icon=o_icon,
                           w=wd * distSize,
@@ -330,7 +334,8 @@ def lipsRig(eLoop,
                           color=color)
 
         upControls.append(ctl)
-        if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
+        name_split = control_name.split("_")
+        if len(name_split) == 2 and name_split[-1] == "ghost":
             pass
         else:
             pm.sets(ctlSet, add=ctl)
@@ -365,7 +370,7 @@ def lipsRig(eLoop,
                                      t)
         lowNpo.append(npo)
         ctl = icon.create(npo,
-                          setName("%s_%s" % (oName, ctlName), oSide),
+                          setName("%s_%s" % (oName, control_name), oSide),
                           t,
                           icon=o_icon,
                           w=wd * distSize,
@@ -374,7 +379,8 @@ def lipsRig(eLoop,
                           po=datatypes.Vector(0, 0, .07 * distSize),
                           color=color)
         lowControls.append(ctl)
-        if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
+        name_split = control_name.split("_")
+        if len(name_split) == 2 and control_name.split("_")[-1] == "ghost":
             pass
         else:
             pm.sets(ctlSet, add=ctl)
@@ -520,13 +526,13 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if headJnt and isinstance(headJnt, (str, unicode)):
+        if head_joint and isinstance(head_joint, (str, unicode)):
             try:
-                j_parent = pm.PyNode(headJnt)
+                j_parent = pm.PyNode(head_joint)
             except pm.MayaNodeError:
                 j_parent = False
-        elif headJnt and isinstance(headJnt, pm.PyNode):
-            j_parent = headJnt
+        elif head_joint and isinstance(head_joint, pm.PyNode):
+            j_parent = head_joint
         else:
             j_parent = False
 
@@ -579,13 +585,13 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if jawJnt and isinstance(jawJnt, (str, unicode)):
+        if jaw_joint and isinstance(jaw_joint, (str, unicode)):
             try:
-                j_parent = pm.PyNode(jawJnt)
+                j_parent = pm.PyNode(jaw_joint)
             except pm.MayaNodeError:
                 pass
-        elif jawJnt and isinstance(jawJnt, pm.PyNode):
-            j_parent = jawJnt
+        elif jaw_joint and isinstance(jaw_joint, pm.PyNode):
+            j_parent = jaw_joint
         else:
             j_parent = False
         jnt = rigbits.addJnt(oTrans, noReplace=True, parent=j_parent)
@@ -596,33 +602,33 @@ def lipsRig(eLoop,
     ###########################################
     # Connecting rig
     ###########################################
-    if parent:
+    if parent_node:
         try:
-            if isinstance(parent, basestring):
-                parent = pm.PyNode(parent)
-            parent.addChild(lips_root)
+            if isinstance(parent_node, basestring):
+                parent_node = pm.PyNode(parent_node)
+            parent_node.addChild(lips_root)
         except pm.MayaNodeError:
             pm.displayWarning("The Lips rig can not be parent to: %s. Maybe "
-                              "this object doesn't exist." % parent)
-    if headJnt and jawJnt:
+                              "this object doesn't exist." % parent_node)
+    if head_joint and jaw_joint:
         try:
-            if isinstance(headJnt, basestring):
-                headJnt = pm.PyNode(headJnt)
+            if isinstance(head_joint, basestring):
+                head_joint = pm.PyNode(head_joint)
         except pm.MayaNodeError:
             pm.displayWarning("Head Joint or Upper Lip Joint %s. Can not be "
-                              "fount in the scene" % headJnt)
+                              "fount in the scene" % head_joint)
             return
         try:
-            if isinstance(jawJnt, basestring):
-                jawJnt = pm.PyNode(jawJnt)
+            if isinstance(jaw_joint, basestring):
+                jaw_joint = pm.PyNode(jaw_joint)
         except pm.MayaNodeError:
             pm.displayWarning("Jaw Joint or Lower Lip Joint %s. Can not be "
-                              "fount in the scene" % jawJnt)
+                              "fount in the scene" % jaw_joint)
             return
 
         # in order to avoid flips lets create a reference transform
         ref_cns_list = []
-        for cns_ref in [headJnt, jawJnt]:
+        for cns_ref in [head_joint, jaw_joint]:
 
             t = transform.getTransformFromPos(
                 cns_ref.getTranslation(space='world'))
@@ -643,20 +649,20 @@ def lipsRig(eLoop,
                             upControls[-1].getParent(),
                             mo=True)
         # up control connection
-        pm.parentConstraint(headJnt,
+        pm.parentConstraint(head_joint,
                             upControls[3].getParent(),
                             mo=True)
         # low control connection
-        pm.parentConstraint(jawJnt,
+        pm.parentConstraint(jaw_joint,
                             lowControls[2].getParent(),
                             mo=True)
 
     ###########################################
     # Auto Skinning
     ###########################################
-    if doSkin:
+    if do_skin:
         # eyelid vertex rows
-        totalLoops = rigidLoops + falloffLoops
+        totalLoops = rigid_loops + falloff_loops
         vertexLoopList = meshNavigation.getConcentricVertexLoop(vertexList,
                                                                 totalLoops)
         vertexRowList = meshNavigation.getVertexRowsFromLoops(vertexLoopList)
@@ -664,13 +670,13 @@ def lipsRig(eLoop,
         # we set the first value 100% for the first initial loop
         skinPercList = [1.0]
         # we expect to have a regular grid topology
-        for r in range(rigidLoops):
+        for r in range(rigid_loops):
             for rr in range(2):
                 skinPercList.append(1.0)
-        increment = 1.0 / float(falloffLoops)
+        increment = 1.0 / float(falloff_loops)
         # we invert to smooth out from 100 to 0
         inv = 1.0 - increment
-        for r in range(falloffLoops):
+        for r in range(falloff_loops):
             for rr in range(2):
                 if inv < 0.0:
                     inv = 0.0
@@ -683,12 +689,12 @@ def lipsRig(eLoop,
                 skinPercList.append(0.0)
 
         # base skin
-        if headJnt:
+        if head_joint:
             try:
-                headJnt = pm.PyNode(headJnt)
+                head_joint = pm.PyNode(head_joint)
             except pm.MayaNodeError:
                 pm.displayWarning(
-                    "Auto skin aborted can not find %s " % headJnt)
+                    "Auto skin aborted can not find %s " % head_joint)
                 return
 
         # Check if the object has a skinCluster
@@ -696,7 +702,7 @@ def lipsRig(eLoop,
 
         skinCluster = skin.getSkinCluster(objName)
         if not skinCluster:
-            skinCluster = pm.skinCluster(headJnt,
+            skinCluster = pm.skinCluster(head_joint,
                                          geo,
                                          tsb=True,
                                          nw=2,
@@ -762,136 +768,137 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Geometry input controls
         self.geometryInput_group = QtWidgets.QGroupBox("Geometry Input")
-        self.edgeloop_label = QtWidgets.QLabel("Edge Loop:")
-        self.edgeloop_lineEdit = QtWidgets.QLineEdit()
-        self.edgeloop_button = QtWidgets.QPushButton("<<")
-        self.upVertex_label = QtWidgets.QLabel("Upper Vertex:")
-        self.upVertex_lineEdit = QtWidgets.QLineEdit()
-        self.upVertex_button = QtWidgets.QPushButton("<<")
-        self.lowVertex_label = QtWidgets.QLabel("Lower Vertex:")
-        self.lowVertex_lineEdit = QtWidgets.QLineEdit()
-        self.lowVertex_button = QtWidgets.QPushButton("<<")
+        self.edgedge_loop_label = QtWidgets.QLabel("Edge Loop:")
+        self.edge_loop = QtWidgets.QLineEdit()
+        self.edge_loop_button = QtWidgets.QPushButton("<<")
+        self.up_vertex_label = QtWidgets.QLabel("Upper Vertex:")
+        self.up_vertex = QtWidgets.QLineEdit()
+        self.up_vertex_button = QtWidgets.QPushButton("<<")
+        self.low_vertex_label = QtWidgets.QLabel("Lower Vertex:")
+        self.low_vertex = QtWidgets.QLineEdit()
+        self.low_vertex_button = QtWidgets.QPushButton("<<")
 
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
-        self.prefix_lineEdit = QtWidgets.QLineEdit()
-        self.prefix_lineEdit.setText("lips")
+        self.name_prefix = QtWidgets.QLineEdit()
+        self.name_prefix.setText("lips")
 
         # control extension
         self.control_group = QtWidgets.QGroupBox("Control Name Extension")
-        self.control_lineEdit = QtWidgets.QLineEdit()
-        self.control_lineEdit.setText("ctl")
+        self.control_name = QtWidgets.QLineEdit()
+        self.control_name.setText("ctl")
 
         # joints
         self.joints_group = QtWidgets.QGroupBox("Joints")
-        self.headJnt_label = QtWidgets.QLabel("Head or Upper Lip Joint:")
-        self.headJnt_lineEdit = QtWidgets.QLineEdit()
-        self.headJnt_button = QtWidgets.QPushButton("<<")
-        self.jawJnt_label = QtWidgets.QLabel("Jaw or Lower Lip Joint:")
-        self.jawJnt_lineEdit = QtWidgets.QLineEdit()
-        self.jawJnt_button = QtWidgets.QPushButton("<<")
+        self.head_joint_label = QtWidgets.QLabel("Head or Upper Lip Joint:")
+        self.head_joint = QtWidgets.QLineEdit()
+        self.head_joint_button = QtWidgets.QPushButton("<<")
+        self.jaw_joint_label = QtWidgets.QLabel("Jaw or Lower Lip Joint:")
+        self.jaw_joint = QtWidgets.QLineEdit()
+        self.jaw_joint_button = QtWidgets.QPushButton("<<")
 
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
-        self.rigidLoops_label = QtWidgets.QLabel("Rigid Loops:")
-        self.rigidLoops_value = QtWidgets.QSpinBox()
-        self.rigidLoops_value.setRange(0, 30)
-        self.rigidLoops_value.setSingleStep(1)
-        self.rigidLoops_value.setValue(5)
-        self.falloffLoops_label = QtWidgets.QLabel("Falloff Loops:")
-        self.falloffLoops_value = QtWidgets.QSpinBox()
-        self.falloffLoops_value.setRange(0, 30)
-        self.falloffLoops_value.setSingleStep(1)
-        self.falloffLoops_value.setValue(8)
+        self.rigid_loops_label = QtWidgets.QLabel("Rigid Loops:")
+        self.rigid_loops = QtWidgets.QSpinBox()
+        self.rigid_loops.setRange(0, 30)
+        self.rigid_loops.setSingleStep(1)
+        self.rigid_loops.setValue(5)
+        self.falloff_loops_label = QtWidgets.QLabel("Falloff Loops:")
+        self.falloff_loops = QtWidgets.QSpinBox()
+        self.falloff_loops.setRange(0, 30)
+        self.falloff_loops.setSingleStep(1)
+        self.falloff_loops.setValue(8)
 
-        self.topSkin_check = QtWidgets.QCheckBox(
+        self.do_skin = QtWidgets.QCheckBox(
             'Compute Topological Autoskin')
-        self.topSkin_check.setChecked(True)
+        self.do_skin.setChecked(True)
 
         # Options
         self.options_group = QtWidgets.QGroupBox("Options")
-        self.lipThickness_label = QtWidgets.QLabel("Lips Thickness:")
-        self.lipThickness_value = QtWidgets.QDoubleSpinBox()
-        self.lipThickness_value.setRange(0, 10)
-        self.lipThickness_value.setSingleStep(.01)
-        self.lipThickness_value.setValue(.03)
+        self.thickness_label = QtWidgets.QLabel("Lips Thickness:")
+        self.thickness = QtWidgets.QDoubleSpinBox()
+        self.thickness.setRange(0, 10)
+        self.thickness.setSingleStep(.01)
+        self.thickness.setValue(.03)
         self.parent_label = QtWidgets.QLabel("Static Rig Parent:")
-        self.parent_lineEdit = QtWidgets.QLineEdit()
+        self.parent_node = QtWidgets.QLineEdit()
         self.parent_button = QtWidgets.QPushButton("<<")
         # Build button
         self.build_button = QtWidgets.QPushButton("Build Lips Rig")
+        self.import_button = QtWidgets.QPushButton("Import Config from json")
         self.export_button = QtWidgets.QPushButton("Export Config to json")
 
     def create_layout(self):
 
         # Edge Loop Layout
-        edgeloop_layout = QtWidgets.QHBoxLayout()
-        edgeloop_layout.setContentsMargins(1, 1, 1, 1)
-        edgeloop_layout.addWidget(self.edgeloop_label)
-        edgeloop_layout.addWidget(self.edgeloop_lineEdit)
-        edgeloop_layout.addWidget(self.edgeloop_button)
+        edgedge_loop_layout = QtWidgets.QHBoxLayout()
+        edgedge_loop_layout.setContentsMargins(1, 1, 1, 1)
+        edgedge_loop_layout.addWidget(self.edgedge_loop_label)
+        edgedge_loop_layout.addWidget(self.edge_loop)
+        edgedge_loop_layout.addWidget(self.edge_loop_button)
 
         # Outer Edge Loop Layout
-        upVertex_layout = QtWidgets.QHBoxLayout()
-        upVertex_layout.setContentsMargins(1, 1, 1, 1)
-        upVertex_layout.addWidget(self.upVertex_label)
-        upVertex_layout.addWidget(self.upVertex_lineEdit)
-        upVertex_layout.addWidget(self.upVertex_button)
+        up_vertex_layout = QtWidgets.QHBoxLayout()
+        up_vertex_layout.setContentsMargins(1, 1, 1, 1)
+        up_vertex_layout.addWidget(self.up_vertex_label)
+        up_vertex_layout.addWidget(self.up_vertex)
+        up_vertex_layout.addWidget(self.up_vertex_button)
 
         # inner Edge Loop Layout
-        lowVertex_layout = QtWidgets.QHBoxLayout()
-        lowVertex_layout.setContentsMargins(1, 1, 1, 1)
-        lowVertex_layout.addWidget(self.lowVertex_label)
-        lowVertex_layout.addWidget(self.lowVertex_lineEdit)
-        lowVertex_layout.addWidget(self.lowVertex_button)
+        low_vertex_layout = QtWidgets.QHBoxLayout()
+        low_vertex_layout.setContentsMargins(1, 1, 1, 1)
+        low_vertex_layout.addWidget(self.low_vertex_label)
+        low_vertex_layout.addWidget(self.low_vertex)
+        low_vertex_layout.addWidget(self.low_vertex_button)
 
         # Geometry Input Layout
         geometryInput_layout = QtWidgets.QVBoxLayout()
         geometryInput_layout.setContentsMargins(6, 1, 6, 2)
-        geometryInput_layout.addLayout(edgeloop_layout)
-        geometryInput_layout.addLayout(upVertex_layout)
-        geometryInput_layout.addLayout(lowVertex_layout)
+        geometryInput_layout.addLayout(edgedge_loop_layout)
+        geometryInput_layout.addLayout(up_vertex_layout)
+        geometryInput_layout.addLayout(low_vertex_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
         # joints Layout
-        headJnt_layout = QtWidgets.QHBoxLayout()
-        headJnt_layout.addWidget(self.headJnt_label)
-        headJnt_layout.addWidget(self.headJnt_lineEdit)
-        headJnt_layout.addWidget(self.headJnt_button)
+        head_joint_layout = QtWidgets.QHBoxLayout()
+        head_joint_layout.addWidget(self.head_joint_label)
+        head_joint_layout.addWidget(self.head_joint)
+        head_joint_layout.addWidget(self.head_joint_button)
 
-        jawJnt_layout = QtWidgets.QHBoxLayout()
-        jawJnt_layout.addWidget(self.jawJnt_label)
-        jawJnt_layout.addWidget(self.jawJnt_lineEdit)
-        jawJnt_layout.addWidget(self.jawJnt_button)
+        jaw_joint_layout = QtWidgets.QHBoxLayout()
+        jaw_joint_layout.addWidget(self.jaw_joint_label)
+        jaw_joint_layout.addWidget(self.jaw_joint)
+        jaw_joint_layout.addWidget(self.jaw_joint_button)
 
         joints_layout = QtWidgets.QVBoxLayout()
         joints_layout.setContentsMargins(6, 4, 6, 4)
-        joints_layout.addLayout(headJnt_layout)
-        joints_layout.addLayout(jawJnt_layout)
+        joints_layout.addLayout(head_joint_layout)
+        joints_layout.addLayout(jaw_joint_layout)
         self.joints_group.setLayout(joints_layout)
 
         # topological autoskin Layout
         skinLoops_layout = QtWidgets.QGridLayout()
-        skinLoops_layout.addWidget(self.rigidLoops_label, 0, 0)
-        skinLoops_layout.addWidget(self.falloffLoops_label, 0, 1)
-        skinLoops_layout.addWidget(self.rigidLoops_value, 1, 0)
-        skinLoops_layout.addWidget(self.falloffLoops_value, 1, 1)
+        skinLoops_layout.addWidget(self.rigid_loops_label, 0, 0)
+        skinLoops_layout.addWidget(self.falloff_loops_label, 0, 1)
+        skinLoops_layout.addWidget(self.rigid_loops, 1, 0)
+        skinLoops_layout.addWidget(self.falloff_loops, 1, 1)
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.topSkin_check, alignment=0)
+        topoSkin_layout.addWidget(self.do_skin, alignment=0)
         topoSkin_layout.addLayout(skinLoops_layout)
-        topoSkin_layout.addLayout(headJnt_layout)
-        topoSkin_layout.addLayout(jawJnt_layout)
+        topoSkin_layout.addLayout(head_joint_layout)
+        topoSkin_layout.addLayout(jaw_joint_layout)
         self.topoSkin_group.setLayout(topoSkin_layout)
 
         # Options Layout
         lipThickness_layout = QtWidgets.QHBoxLayout()
-        lipThickness_layout.addWidget(self.lipThickness_label)
-        lipThickness_layout.addWidget(self.lipThickness_value)
+        lipThickness_layout.addWidget(self.thickness_label)
+        lipThickness_layout.addWidget(self.thickness)
         parent_layout = QtWidgets.QHBoxLayout()
         parent_layout.addWidget(self.parent_label)
-        parent_layout.addWidget(self.parent_lineEdit)
+        parent_layout.addWidget(self.parent_node)
         parent_layout.addWidget(self.parent_button)
         options_layout = QtWidgets.QVBoxLayout()
         options_layout.setContentsMargins(6, 1, 6, 2)
@@ -901,15 +908,15 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.options_group.setLayout(options_layout)
 
         # Name prefix
-        namePrefix_layout = QtWidgets.QHBoxLayout()
-        namePrefix_layout.setContentsMargins(1, 1, 1, 1)
-        namePrefix_layout.addWidget(self.prefix_lineEdit)
-        self.prefix_group.setLayout(namePrefix_layout)
+        name_prefix_layout = QtWidgets.QHBoxLayout()
+        name_prefix_layout.setContentsMargins(1, 1, 1, 1)
+        name_prefix_layout.addWidget(self.name_prefix)
+        self.prefix_group.setLayout(name_prefix_layout)
 
         # Control Name Extension
         controlExtension_layout = QtWidgets.QHBoxLayout()
         controlExtension_layout.setContentsMargins(1, 1, 1, 1)
-        controlExtension_layout.addWidget(self.control_lineEdit)
+        controlExtension_layout.addWidget(self.control_name)
         self.control_group.setLayout(controlExtension_layout)
 
         # Main Layout
@@ -922,32 +929,33 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(self.joints_group)
         main_layout.addWidget(self.topoSkin_group)
         main_layout.addWidget(self.build_button)
+        main_layout.addWidget(self.import_button)
         main_layout.addWidget(self.export_button)
 
         self.setLayout(main_layout)
 
     def create_connections(self):
-        self.edgeloop_button.clicked.connect(partial(self.populate_edgeloop,
-                                                     self.edgeloop_lineEdit))
-        self.upVertex_button.clicked.connect(partial(self.populate_element,
-                                                     self.upVertex_lineEdit,
-                                                     "vertex"))
-        self.lowVertex_button.clicked.connect(partial(self.populate_element,
-                                                      self.lowVertex_lineEdit,
-                                                      "vertex"))
-
-        self.parent_button.clicked.connect(partial(self.populate_element,
-                                                   self.parent_lineEdit))
-
-        self.headJnt_button.clicked.connect(partial(self.populate_element,
-                                                    self.headJnt_lineEdit,
-                                                    "joint"))
-        self.jawJnt_button.clicked.connect(partial(self.populate_element,
-                                                   self.jawJnt_lineEdit,
-                                                   "joint"))
-
+        self.edge_loop_button.clicked.connect(
+            partial(self.populate_edge_loop, self.edge_loop)
+        )
+        self.up_vertex_button.clicked.connect(
+            partial(self.populate_element, self.up_vertex, "vertex")
+        )
+        self.low_vertex_button.clicked.connect(
+            partial(self.populate_element, self.low_vertex, "vertex")
+        )
+        self.parent_button.clicked.connect(
+            partial(self.populate_element, self.parent_node)
+        )
+        self.head_joint_button.clicked.connect(
+            partial(self.populate_element, self.head_joint, "joint")
+        )
+        self.jaw_joint_button.clicked.connect(
+            partial(self.populate_element, self.jaw_joint, "joint")
+        )
         self.build_button.clicked.connect(self.buildRig)
-        self.export_button.clicked.connect(self.exportDict)
+        self.import_button.clicked.connect(self.import_settings)
+        self.export_button.clicked.connect(self.export_settings)
 
     # SLOTS ##########################################################
 
@@ -971,7 +979,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("Please select first one %s." % oType)
 
-    def populate_edgeloop(self, lineEdit):
+    def populate_edge_loop(self, lineEdit):
         oSel = pm.selected(fl=1)
         if oSel:
             edgeList = ""
@@ -991,46 +999,32 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("Please select first the edge loop.")
 
-    def populateDict(self):
-        self.buildDict = {}
-        self.buildDict["lips"] = [self.edgeloop_lineEdit.text(),
-                                  self.upVertex_lineEdit.text(),
-                                  self.lowVertex_lineEdit.text(),
-                                  self.prefix_lineEdit.text(),
-                                  self.lipThickness_value.value(),
-                                  self.topSkin_check.isChecked(),
-                                  self.rigidLoops_value.value(),
-                                  self.falloffLoops_value.value(),
-                                  self.headJnt_lineEdit.text(),
-                                  self.jawJnt_lineEdit.text(),
-                                  self.parent_lineEdit.text(),
-                                  self.control_lineEdit.text()]
+    def build_rig(self):
+        rig(**lib.get_settings_from_widget(self))
 
-    def buildRig(self):
-        self.populateDict()
-        lipsRig(*self.buildDict["lips"])
+    def export_settings(self):
+        data_string = json.dumps(
+            lib.get_settings_from_widget(self), indent=4, sort_keys=True
+        )
 
-    def exportDict(self):
-        self.populateDict()
-
-        data_string = json.dumps(self.buildDict, indent=4, sort_keys=True)
-        filePath = pm.fileDialog2(
-            dialogStyle=2,
-            fileMode=0,
-            fileFilter='Lips Rigger Configuration .lips (*%s)' % ".lips")
-        if not filePath:
+        file_path = lib.get_file_path(self.filter)
+        if not file_path:
             return
-        if not isinstance(filePath, basestring):
-            filePath = filePath[0]
-        f = open(filePath, 'w')
-        f.write(data_string)
-        f.close()
+
+        with open(file_path, "w") as f:
+            f.write(data_string)
+
+    def import_settings(self):
+        file_path = lib.get_file_path(self.filter)
+        if not file_path:
+            return
+
+        lib.import_settings_from_file(file_path, self)
 
 
-# build lips from json file:
-def lipsFromfile(path):
-    buildDict = json.load(open(path))
-    lipsRig(*buildDict["lips"])
+# Build from json file.
+def rig_from_file(path):
+    rig(**json.load(open(path)))
 
 
 def show(*args):
