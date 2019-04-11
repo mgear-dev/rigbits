@@ -39,10 +39,10 @@ def eye_rig(eyeMesh=None,
             extCorner=None,
             ctlSet=None,
             defSet=None,
-            upperVTrack=1,
-            upperHTrack=0.5,
-            lowerVTrack=1,
-            lowerHTrack=0.5,
+            upperVTrack=0.02,
+            upperHTrack=0.01,
+            lowerVTrack=0.02,
+            lowerHTrack=0.01,
             aim_controller="",
             deformers_group=""):
 
@@ -922,13 +922,13 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # vTrack and hTrack
         self.tracking_group = QtWidgets.QGroupBox("Tracking")
         self.upperVTrack = QtWidgets.QDoubleSpinBox()
-        self.upperVTrack.setValue(1)
+        self.upperVTrack.setValue(0.02)
         self.upperHTrack = QtWidgets.QDoubleSpinBox()
-        self.upperHTrack.setValue(0.5)
+        self.upperHTrack.setValue(0.01)
         self.lowerVTrack = QtWidgets.QDoubleSpinBox()
-        self.lowerVTrack.setValue(1)
+        self.lowerVTrack.setValue(0.02)
         self.lowerHTrack = QtWidgets.QDoubleSpinBox()
-        self.lowerHTrack.setValue(0.5)
+        self.lowerHTrack.setValue(0.01)
 
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
