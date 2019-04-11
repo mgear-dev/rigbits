@@ -752,6 +752,9 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(ui, self).__init__(parent)
+
+        self.filter = "Lips Rigger Configuration .lips (*.lips)"
+
         self.create()
 
     def create(self):
@@ -953,7 +956,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.jaw_joint_button.clicked.connect(
             partial(self.populate_element, self.jaw_joint, "joint")
         )
-        self.build_button.clicked.connect(self.buildRig)
+        self.build_button.clicked.connect(self.build_rig)
         self.import_button.clicked.connect(self.import_settings)
         self.export_button.clicked.connect(self.export_settings)
 
