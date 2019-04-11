@@ -14,6 +14,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 from pymel.core import datatypes
 
 from mgear import rigbits
+from . import lib
 
 
 ##########################################################
@@ -21,29 +22,29 @@ from mgear import rigbits
 ##########################################################
 
 
-def eyeRig(eyeMesh=None,
-           edgeLoop="",
-           blinkH=20,
-           namePrefix="eye",
-           offset=0.05,
-           rigidLoops=2,
-           falloffLoops=4,
-           headJnt=None,
-           doSkin=True,
-           parent_node=None,
-           ctlName="ctl",
-           sideRange=False,
-           customCorner=False,
-           intCorner=None,
-           extCorner=None,
-           ctlSet=None,
-           defSet=None,
-           upperVTrack=1,
-           upperHTrack=0.5,
-           lowerVTrack=1,
-           lowerHTrack=0.5,
-           aim_controller="",
-           deformers_group=""):
+def eye_rig(eyeMesh=None,
+            edgeLoop="",
+            blinkH=20,
+            namePrefix="eye",
+            offset=0.05,
+            rigidLoops=2,
+            falloffLoops=4,
+            headJnt=None,
+            doSkin=True,
+            parent_node=None,
+            ctlName="ctl",
+            sideRange=False,
+            customCorner=False,
+            intCorner=None,
+            extCorner=None,
+            ctlSet=None,
+            defSet=None,
+            upperVTrack=1,
+            upperHTrack=0.5,
+            lowerVTrack=1,
+            lowerHTrack=0.5,
+            aim_controller="",
+            deformers_group=""):
 
     """Create eyelid and eye rig
 
@@ -856,36 +857,6 @@ def eyeRig(eyeMesh=None,
                                          nw=1,
                                          n='skinClsEye')
 
-
-def widget_get(widget):
-    if isinstance(widget, QtWidgets.QDoubleSpinBox):
-        return widget.value()
-    if isinstance(widget, QtWidgets.QSpinBox):
-        return widget.value()
-    if isinstance(widget, QtWidgets.QLineEdit):
-        return widget.text()
-    if isinstance(widget, QtWidgets.QCheckBox):
-        return widget.isChecked()
-
-    return None
-
-
-def widget_set(widget, value):
-    if isinstance(widget, QtWidgets.QDoubleSpinBox):
-        widget.setValue(value)
-        return
-    if isinstance(widget, QtWidgets.QSpinBox):
-        widget.setValue(value)
-        return
-    if isinstance(widget, QtWidgets.QLineEdit):
-        widget.setText(value)
-        return
-    if isinstance(widget, QtWidgets.QCheckBox):
-        widget.setChecked(value)
-        return
-
-    raise ValueError("Widget {0} was not recognized.".format(widget))
-
 ##########################################################
 # Eye Rig UI
 ##########################################################
@@ -897,6 +868,10 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(ui, self).__init__(parent)
+
+        # File type filter for settings.
+        self.filter = "Eyes Rigger Configuration .eyes (*.eyes)"
+
         self.create()
 
     def create(self):
@@ -1189,9 +1164,9 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.edgeloop_button.clicked.connect(self.populate_edgeloop)
 
-        self.build_button.clicked.connect(self.buildRig)
-        self.import_button.clicked.connect(self.importDict)
-        self.export_button.clicked.connect(self.exportDict)
+        self.build_button.clicked.connect(self.build_rig)
+        self.import_button.clicked.connect(self.import_settings)
+        self.export_button.clicked.connect(self.export_settings)
 
         self.intCorner_button.clicked.connect(partial(self.populate_element,
                                                       self.intCorner,
@@ -1265,60 +1240,32 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("Please select first the eyelid edge loop.")
 
-    def populateDict(self):
-        settings = {}
-        for attr, widget in self.__dict__.iteritems():
-            value = widget_get(widget)
-            if value is not None:
-                settings[attr] = value
+    def build_rig(self):
+        eye_rig(**lib.get_settings_from_widget(self))
 
-        self.buildDict = settings
+    def export_settings(self):
+        data_string = json.dumps(
+            lib.get_settings_from_widget(self), indent=4, sort_keys=True
+        )
 
-    def buildRig(self):
-        self.populateDict()
-        eyeRig(**self.buildDict)
-
-    def exportDict(self):
-        self.populateDict()
-
-        data_string = json.dumps(self.buildDict, indent=4, sort_keys=True)
-        filePath = pm.fileDialog2(
-            dialogStyle=2,
-            fileMode=0,
-            fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
-        if not filePath:
+        file_path = lib.get_file_path(self.filter)
+        if not file_path:
             return
-        if not isinstance(filePath, basestring):
-            filePath = filePath[0]
-        f = open(filePath, 'w')
-        f.write(data_string)
-        f.close()
 
-    def importDict(self):
-        filePath = pm.fileDialog2(
-            dialogStyle=2,
-            fileMode=1,
-            fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
-        if not filePath:
+        with open(file_path, "w") as f:
+            f.write(data_string)
+
+    def import_settings(self):
+        file_path = lib.get_file_path(self.filter)
+        if not file_path:
             return
-        if not isinstance(filePath, basestring):
-            filePath = filePath[0]
 
-        settings = {}
-        with open(filePath, "r") as f:
-            settings = json.load(f)
-
-        for attr, widget in self.__dict__.iteritems():
-            if attr not in settings.keys():
-                continue
-
-            widget_set(widget, settings[attr])
+        lib.import_settings_from_file(file_path, self)
 
 
-# build lips from json file:
-def eyesFromfile(path):
-    buildDict = json.load(open(path))
-    eyeRig(**buildDict)
+# Build eyes from json file.
+def eyes_from_file(path):
+    eye_rig(**json.load(open(path)))
 
 
 def show(*args):
@@ -1329,7 +1276,7 @@ if __name__ == "__main__":
     show()
 
     # path = r"C:\Users\admin\Desktop\temp.eyes"
-    # eyesFromfile(path)
+    # eyes_from_file(path)
 
     # path = "C:\\Users\\miquel\\Desktop\\eye_R.eyes"
-    # eyesFromfile(path)
+    # eyes_from_file(path)

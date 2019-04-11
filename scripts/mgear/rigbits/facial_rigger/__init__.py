@@ -2,9 +2,9 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 from mgear.vendor.Qt import QtCore, QtWidgets
 import mgear.core.pyqt as gqt
-import eye_rigger
-import lips_rigger
-import lib
+from . import eye_rigger
+from . import lips_rigger
+from . import lib
 
 
 class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
