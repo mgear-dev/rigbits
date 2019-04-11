@@ -4,6 +4,7 @@ from mgear import rigbits
 from mgear.rigbits import (rbf_manager_ui,
                            postSpring,
                            rope,
+                           facial_rigger,
                            eye_rigger,
                            lips_rigger,
                            channelWrangler,
@@ -49,11 +50,12 @@ def install():
         ("-----", None),
         ("Channel Wrangler", channelWrangler.openChannelWrangler),
         ("-----", None),
-        ("FACIAL: Eye Rigger", eye_rigger.showEyeRigUI),
-        ("FACIAL: Lips Rigger", lips_rigger.showLipRigUI),
+        ("Facial Rigger", facial_rigger.show),
         ("-----", None),
         ("Proxy Slicer", proxySlicer.slice),
-        ("Proxy Slicer Parenting", partial(proxySlicer.slice, True))
+        ("Proxy Slicer Parenting", partial(proxySlicer.slice, True)),
+        ("-----", None),
+        (None, legacy_submenu),
     )
 
     mgear.menu.install(menuID, commands)
@@ -74,6 +76,20 @@ def connect_submenu(parent_menu_id):
     )
 
     mgear.menu.install("Connect Local SRT", commands, parent_menu_id)
+
+
+def legacy_submenu(parent_menu_id):
+    """Create the legacy submenu
+
+    Args:
+        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
+    """
+    commands = (
+        ("FACIAL: Eye Rigger", eye_rigger.showEyeRigUI),
+        ("FACIAL: Lips Rigger", lips_rigger.showLipRigUI)
+    )
+
+    mgear.menu.install("Legacy", commands, parent_menu_id)
 
 
 def gimmick_submenu(parent_menu_id):
