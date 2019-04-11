@@ -22,29 +22,29 @@ from . import lib
 ##########################################################
 
 
-def eye_rig(eyeMesh=None,
-            edgeLoop="",
-            blinkH=20,
-            namePrefix="eye",
-            offset=0.05,
-            rigidLoops=2,
-            falloffLoops=4,
-            headJnt=None,
-            doSkin=True,
-            parent_node=None,
-            ctlName="ctl",
-            sideRange=False,
-            customCorner=False,
-            intCorner=None,
-            extCorner=None,
-            ctlSet=None,
-            defSet=None,
-            upperVTrack=0.02,
-            upperHTrack=0.01,
-            lowerVTrack=0.02,
-            lowerHTrack=0.01,
-            aim_controller="",
-            deformers_group=""):
+def rig(eyeMesh=None,
+        edgeLoop="",
+        blinkH=20,
+        namePrefix="eye",
+        offset=0.05,
+        rigidLoops=2,
+        falloffLoops=4,
+        headJnt=None,
+        doSkin=True,
+        parent_node=None,
+        ctlName="ctl",
+        sideRange=False,
+        customCorner=False,
+        intCorner=None,
+        extCorner=None,
+        ctlSet=None,
+        defSet=None,
+        upperVTrack=0.02,
+        upperHTrack=0.01,
+        lowerVTrack=0.02,
+        lowerHTrack=0.01,
+        aim_controller="",
+        deformers_group=""):
 
     """Create eyelid and eye rig
 
@@ -1241,7 +1241,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("Please select first the eyelid edge loop.")
 
     def build_rig(self):
-        eye_rig(**lib.get_settings_from_widget(self))
+        rig(**lib.get_settings_from_widget(self))
 
     def export_settings(self):
         data_string = json.dumps(
@@ -1263,9 +1263,9 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         lib.import_settings_from_file(file_path, self)
 
 
-# Build eyes from json file.
-def eyes_from_file(path):
-    eye_rig(**json.load(open(path)))
+# Build from json file.
+def rig_from_file(path):
+    rig(**json.load(open(path)))
 
 
 def show(*args):
@@ -1276,7 +1276,7 @@ if __name__ == "__main__":
     show()
 
     # path = r"C:\Users\admin\Desktop\temp.eyes"
-    # eyes_from_file(path)
+    # rig_from_file(path)
 
     # path = "C:\\Users\\miquel\\Desktop\\eye_R.eyes"
-    # eyes_from_file(path)
+    # rig_from_file(path)
