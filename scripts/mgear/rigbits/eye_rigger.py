@@ -4,6 +4,7 @@ import json
 import traceback
 from functools import partial
 
+import mgear
 import mgear.core.pyqt as gqt
 import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
@@ -20,23 +21,29 @@ from mgear import rigbits
 ##########################################################
 
 
-def eyeRig(eyeMesh,
-           edgeLoop,
-           blinkH,
-           namePrefix,
-           offset,
-           rigidLoops,
-           falloffLoops,
-           headJnt,
-           doSkin,
-           parent=None,
+def eyeRig(eyeMesh=None,
+           edgeLoop="",
+           blinkH=20,
+           namePrefix="eye",
+           offset=0.05,
+           rigidLoops=2,
+           falloffLoops=4,
+           headJnt=None,
+           doSkin=True,
+           parent_node=None,
            ctlName="ctl",
            sideRange=False,
            customCorner=False,
            intCorner=None,
            extCorner=None,
-           ctlGrp=None,
-           defGrp=None):
+           ctlSet=None,
+           defSet=None,
+           upperVTrack=1,
+           upperHTrack=0.5,
+           lowerVTrack=1,
+           lowerHTrack=0.5,
+           aim_controller="",
+           deformers_group=""):
 
     """Create eyelid and eye rig
 
@@ -50,14 +57,20 @@ def eyeRig(eyeMesh,
         falloffLoops (TYPE): Description
         headJnt (TYPE): Description
         doSkin (TYPE): Description
-        parent (None, optional): Description
+        parent_node (None, optional): Description
         ctlName (str, optional): Description
         sideRange (bool, optional): Description
         customCorner (bool, optional): Description
         intCorner (None, optional): Description
         extCorner (None, optional): Description
-        ctlGrp (None, optional): Description
-        defGrp (None, optional): Description
+        ctlSet (None, optional): Description
+        defSet (None, optional): Description
+        upperVTrack (None, optional): Description
+        upperHTrack (None, optional): Description
+        lowerVTrack (None, optional): Description
+        lowerHTrack (None, optional): Description
+        aim_controller (None, optional): Description
+        deformers_group (None, optional): Description
 
     Returns:
         TYPE: Description
@@ -84,6 +97,9 @@ def eyeRig(eyeMesh,
             pm.displayWarning("Please set the Head Jnt or unCheck "
                               "Compute Topological Autoskin")
             return
+
+    # Convert data
+    blinkH = blinkH / 100.0
 
     # Initial Data
     bboxCenter = meshNavigation.bboxCenter(eyeMesh)
@@ -224,20 +240,20 @@ def eyeRig(eyeMesh,
     dRadius = abs((localBBox[0][1] - localBBox[1][1]) / 1.7)
 
     # Groups
-    if not ctlGrp:
-        ctlGrp = "rig_controllers_grp"
+    if not ctlSet:
+        ctlSet = "rig_controllers_grp"
     try:
-        ctlSet = pm.PyNode(ctlGrp)
+        ctlSet = pm.PyNode(ctlSet)
     except pm.MayaNodeError:
-        pm.sets(n=ctlGrp, em=True)
-        ctlSet = pm.PyNode(ctlGrp)
-    if not defGrp:
-        defGrp = "rig_deformers_grp"
+        pm.sets(n=ctlSet, em=True)
+        ctlSet = pm.PyNode(ctlSet)
+    if not defSet:
+        defSet = "rig_deformers_grp"
     try:
-        defset = pm.PyNode(defGrp)
+        defset = pm.PyNode(defSet)
     except pm.MayaNodeError:
-        pm.sets(n=defGrp, em=True)
-        defset = pm.PyNode(defGrp)
+        pm.sets(n=defSet, em=True)
+        defset = pm.PyNode(defSet)
 
     # Calculate center looking at
     averagePosition = ((upPos.getPosition(space='world')
@@ -305,14 +321,24 @@ def eyeRig(eyeMesh,
                                               axis="zy", negate=False)
 
     radius = abs((localBBox[0][0] - localBBox[1][0]) / 1.7)
-    arrow_npo = primitive.addTransform(eye_root, setName("aim_npo"), t_arrow)
-    arrow_ctl = icon.create(arrow_npo,
-                            setName("aim_%s" % ctlName),
-                            t_arrow,
-                            icon="arrow",
-                            w=1,
-                            po=datatypes.Vector(0, 0, radius),
-                            color=4)
+
+    arrow_ctl = None
+    arrow_npo = None
+    if aim_controller:
+        arrow_ctl = pm.PyNode(aim_controller)
+    else:
+        arrow_npo = primitive.addTransform(
+            eye_root, setName("aim_npo"), t_arrow
+        )
+        arrow_ctl = icon.create(
+            arrow_npo,
+            setName("aim_%s" % ctlName),
+            t_arrow,
+            icon="arrow",
+            w=1,
+            po=datatypes.Vector(0, 0, radius),
+            color=4
+        )
     if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
         pass
     else:
@@ -326,11 +352,17 @@ def eyeRig(eyeMesh,
         tt = t
     aimTrigger_root = primitive.addTransform(
         center_lookat, setName("aimTrigger_root"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_root)
     aimTrigger_lvl = primitive.addTransform(
         aimTrigger_root, setName("aimTrigger_lvl"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_lvl)
     aimTrigger_lvl.attr("tz").set(1.0)
     aimTrigger_ref = primitive.addTransform(
         aimTrigger_lvl, setName("aimTrigger_ref"), tt)
+    # For some unknown reason the right side gets scewed rotation values
+    mgear.core.transform.resetTransform(aimTrigger_ref)
     aimTrigger_ref.attr("tz").set(0.0)
     # connect  trigger with arrow_ctl
     pm.parentConstraint(arrow_ctl, aimTrigger_ref, mo=True)
@@ -528,7 +560,12 @@ def eyeRig(eyeMesh,
 
     # joints root
     jnt_root = primitive.addTransformFromPos(
-        eye_root, setName("joints"), pos=bboxCenter)
+        eye_root, setName("joints"), pos=bboxCenter
+    )
+    if deformers_group:
+        deformers_group = pm.PyNode(deformers_group)
+        pm.parentConstraint(eye_root, jnt_root, mo=True)
+        deformers_group.addChild(jnt_root)
 
     # head joint
     if headJnt:
@@ -659,45 +696,51 @@ def eyeRig(eyeMesh,
     upVTracking_att = attribute.addAttribute(up_ctl,
                                              "vTracking",
                                              "float",
-                                             .02,
+                                             upperVTrack,
                                              minValue=0,
-                                             maxValue=1,
                                              keyable=False,
                                              channelBox=True)
     upHTracking_att = attribute.addAttribute(up_ctl,
                                              "hTracking",
                                              "float",
-                                             .01,
+                                             upperHTrack,
                                              minValue=0,
-                                             maxValue=1,
                                              keyable=False,
                                              channelBox=True)
 
     lowVTracking_att = attribute.addAttribute(low_ctl,
                                               "vTracking",
                                               "float",
-                                              .01,
+                                              lowerVTrack,
                                               minValue=0,
-                                              maxValue=1,
                                               keyable=False,
                                               channelBox=True)
     lowHTracking_att = attribute.addAttribute(low_ctl,
                                               "hTracking",
                                               "float",
-                                              .01,
+                                              lowerHTrack,
                                               minValue=0,
-                                              maxValue=1,
                                               keyable=False,
                                               channelBox=True)
 
     mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("ty"))
     mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(
+            mult_node.attr("outputX"), -1
+        )
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("tx"))
 
     mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("ty"))
     mult_node = node.createMulNode(lowHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(
+            mult_node.attr("outputX"), -1
+        )
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
 
     # Tension on blink
@@ -709,14 +752,14 @@ def eyeRig(eyeMesh,
     ###########################################
     # Reparenting
     ###########################################
-    if parent:
+    if parent_node:
         try:
-            if isinstance(parent, basestring):
-                parent = pm.PyNode(parent)
-            parent.addChild(eye_root)
+            if isinstance(parent_node, basestring):
+                parent_node = pm.PyNode(parent_node)
+            parent_node.addChild(eye_root)
         except pm.MayaNodeError:
             pm.displayWarning("The eye rig can not be parent to: %s. Maybe "
-                              "this object doesn't exist." % parent)
+                              "this object doesn't exist." % parent_node)
 
     ###########################################
     # Auto Skinning
@@ -813,6 +856,36 @@ def eyeRig(eyeMesh,
                                          nw=1,
                                          n='skinClsEye')
 
+
+def widget_get(widget):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox):
+        return widget.value()
+    if isinstance(widget, QtWidgets.QSpinBox):
+        return widget.value()
+    if isinstance(widget, QtWidgets.QLineEdit):
+        return widget.text()
+    if isinstance(widget, QtWidgets.QCheckBox):
+        return widget.isChecked()
+
+    return None
+
+
+def widget_set(widget, value):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox):
+        widget.setValue(value)
+        return
+    if isinstance(widget, QtWidgets.QSpinBox):
+        widget.setValue(value)
+        return
+    if isinstance(widget, QtWidgets.QLineEdit):
+        widget.setText(value)
+        return
+    if isinstance(widget, QtWidgets.QCheckBox):
+        widget.setChecked(value)
+        return
+
+    raise ValueError("Widget {0} was not recognized.".format(widget))
+
 ##########################################################
 # Eye Rig UI
 ##########################################################
@@ -841,91 +914,110 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Geometry input controls
         self.geometryInput_group = QtWidgets.QGroupBox("Geometry Input")
         self.eyeball_label = QtWidgets.QLabel("Eyeball:")
-        self.eyeball_lineEdit = QtWidgets.QLineEdit()
+        self.eyeMesh = QtWidgets.QLineEdit()
         self.eyeball_button = QtWidgets.QPushButton("<<")
         self.edgeloop_label = QtWidgets.QLabel("Edge Loop:")
-        self.edgeloop_lineEdit = QtWidgets.QLineEdit()
+        self.edgeLoop = QtWidgets.QLineEdit()
         self.edgeloop_button = QtWidgets.QPushButton("<<")
 
         # Manual corners
         self.manualCorners_group = QtWidgets.QGroupBox("Custom Eye Corners")
-        self.manualCorners_check = QtWidgets.QCheckBox(
+        self.customCorner = QtWidgets.QCheckBox(
             "Set Manual Vertex Corners")
-        self.manualCorners_check.setChecked(False)
+        self.customCorner.setChecked(False)
         self.intCorner_label = QtWidgets.QLabel("Internal Corner")
-        self.intCorner_lineEdit = QtWidgets.QLineEdit()
+        self.intCorner = QtWidgets.QLineEdit()
         self.intCorner_button = QtWidgets.QPushButton("<<")
         self.extCorner_label = QtWidgets.QLabel("External Corner")
-        self.extCorner_lineEdit = QtWidgets.QLineEdit()
+        self.extCorner = QtWidgets.QLineEdit()
         self.extCorner_button = QtWidgets.QPushButton("<<")
 
         # Blink heigh slider
-        self.blinkHeigh_group = QtWidgets.QGroupBox("Blink High")
-        self.blinkHeight_value = QtWidgets.QSpinBox()
-        self.blinkHeight_value.setRange(0, 100)
-        self.blinkHeight_value.setSingleStep(10)
-        self.blinkHeight_value.setValue(20)
+        self.blinkHeight_group = QtWidgets.QGroupBox("Blink Height")
+        self.blinkH = QtWidgets.QSpinBox()
+        self.blinkH.setRange(0, 100)
+        self.blinkH.setSingleStep(10)
+        self.blinkH.setValue(20)
         self.blinkHeight_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.blinkHeight_slider.setRange(0, 100)
         self.blinkHeight_slider.setSingleStep(
             self.blinkHeight_slider.maximum() / 10.0)
         self.blinkHeight_slider.setValue(20)
 
+        # vTrack and hTrack
+        self.tracking_group = QtWidgets.QGroupBox("Tracking")
+        self.upperVTrack = QtWidgets.QDoubleSpinBox()
+        self.upperVTrack.setValue(1)
+        self.upperHTrack = QtWidgets.QDoubleSpinBox()
+        self.upperHTrack.setValue(0.5)
+        self.lowerVTrack = QtWidgets.QDoubleSpinBox()
+        self.lowerVTrack.setValue(1)
+        self.lowerHTrack = QtWidgets.QDoubleSpinBox()
+        self.lowerHTrack.setValue(0.5)
+
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
-        self.prefix_lineEdit = QtWidgets.QLineEdit()
-        self.prefix_lineEdit.setText("eye")
+        self.namePrefix = QtWidgets.QLineEdit()
+        self.namePrefix.setText("eye")
         self.control_group = QtWidgets.QGroupBox("Control Name Extension")
-        self.control_lineEdit = QtWidgets.QLineEdit()
-        self.control_lineEdit.setText("ctl")
+        self.ctlName = QtWidgets.QLineEdit()
+        self.ctlName.setText("ctl")
 
         # joints
         self.joints_group = QtWidgets.QGroupBox("Joints")
         self.headJnt_label = QtWidgets.QLabel("Head or Eye area Joint:")
-        self.headJnt_lineEdit = QtWidgets.QLineEdit()
+        self.headJnt = QtWidgets.QLineEdit()
         self.headJnt_button = QtWidgets.QPushButton("<<")
 
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
         self.rigidLoops_label = QtWidgets.QLabel("Rigid Loops:")
-        self.rigidLoops_value = QtWidgets.QSpinBox()
-        self.rigidLoops_value.setRange(0, 30)
-        self.rigidLoops_value.setSingleStep(1)
-        self.rigidLoops_value.setValue(2)
+        self.rigidLoops = QtWidgets.QSpinBox()
+        self.rigidLoops.setRange(0, 30)
+        self.rigidLoops.setSingleStep(1)
+        self.rigidLoops.setValue(2)
         self.falloffLoops_label = QtWidgets.QLabel("Falloff Loops:")
-        self.falloffLoops_value = QtWidgets.QSpinBox()
-        self.falloffLoops_value.setRange(0, 30)
-        self.falloffLoops_value.setSingleStep(1)
-        self.falloffLoops_value.setValue(4)
+        self.falloffLoops = QtWidgets.QSpinBox()
+        self.falloffLoops.setRange(0, 30)
+        self.falloffLoops.setSingleStep(1)
+        self.falloffLoops.setValue(4)
 
-        self.topSkin_check = QtWidgets.QCheckBox(
+        self.doSkin = QtWidgets.QCheckBox(
             'Compute Topological Autoskin')
-        self.topSkin_check.setChecked(True)
+        self.doSkin.setChecked(True)
 
         # Options
         self.options_group = QtWidgets.QGroupBox("Options")
         self.parent_label = QtWidgets.QLabel("Rig Parent:")
-        self.parent_lineEdit = QtWidgets.QLineEdit()
+        self.parent_node = QtWidgets.QLineEdit()
         self.parent_button = QtWidgets.QPushButton("<<")
+        self.aim_controller_label = QtWidgets.QLabel("Aim Controller:")
+        self.aim_controller = QtWidgets.QLineEdit()
+        self.aim_controller_button = QtWidgets.QPushButton("<<")
         self.ctlShapeOffset_label = QtWidgets.QLabel("Controls Offset:")
-        self.ctlShapeOffset_value = QtWidgets.QDoubleSpinBox()
-        self.ctlShapeOffset_value.setRange(0, 10)
-        self.ctlShapeOffset_value.setSingleStep(.05)
-        self.ctlShapeOffset_value.setValue(.05)
-        self.sideRange_check = QtWidgets.QCheckBox(
+        self.offset = QtWidgets.QDoubleSpinBox()
+        self.offset.setRange(0, 10)
+        self.offset.setSingleStep(.05)
+        self.offset.setValue(.05)
+        self.sideRange = QtWidgets.QCheckBox(
             "Use Z axis for wide calculation (i.e: Horse and fish side eyes)")
-        self.sideRange_check.setChecked(False)
+        self.sideRange.setChecked(False)
 
-        self.ctlGrp_label = QtWidgets.QLabel("Controls Group:")
-        self.ctlGrp_lineEdit = QtWidgets.QLineEdit()
-        self.ctlGrp_button = QtWidgets.QPushButton("<<")
+        self.ctlSet_label = QtWidgets.QLabel("Controls Set:")
+        self.ctlSet = QtWidgets.QLineEdit()
+        self.ctlSet_button = QtWidgets.QPushButton("<<")
 
-        self.deformersGrp_label = QtWidgets.QLabel("Deformers Group:")
-        self.deformersGrp_lineEdit = QtWidgets.QLineEdit()
-        self.deformersGrp_button = QtWidgets.QPushButton("<<")
+        self.deformersSet_label = QtWidgets.QLabel("Deformers Set:")
+        self.defSet = QtWidgets.QLineEdit()
+        self.deformersSet_button = QtWidgets.QPushButton("<<")
 
-        # Build button
+        self.deformers_group_label = QtWidgets.QLabel("Deformers Group:")
+        self.deformers_group = QtWidgets.QLineEdit()
+        self.deformers_group_button = QtWidgets.QPushButton("<<")
+
+        # Main buttons
         self.build_button = QtWidgets.QPushButton("Build Eye Rig")
+        self.import_button = QtWidgets.QPushButton("Import Config from json")
         self.export_button = QtWidgets.QPushButton("Export Config to json")
 
     def create_layout(self):
@@ -934,14 +1026,14 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         eyeball_layout = QtWidgets.QHBoxLayout()
         eyeball_layout.setContentsMargins(1, 1, 1, 1)
         eyeball_layout.addWidget(self.eyeball_label)
-        eyeball_layout.addWidget(self.eyeball_lineEdit)
+        eyeball_layout.addWidget(self.eyeMesh)
         eyeball_layout.addWidget(self.eyeball_button)
 
         # Edge Loop Layout
         edgeloop_layout = QtWidgets.QHBoxLayout()
         edgeloop_layout.setContentsMargins(1, 1, 1, 1)
         edgeloop_layout.addWidget(self.edgeloop_label)
-        edgeloop_layout.addWidget(self.edgeloop_lineEdit)
+        edgeloop_layout.addWidget(self.edgeLoop)
         edgeloop_layout.addWidget(self.edgeloop_button)
 
         # Geometry Input Layout
@@ -951,17 +1043,33 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         geometryInput_layout.addLayout(edgeloop_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
-        # Blink High Layout
+        # Blink Height Layout
         blinkHeight_layout = QtWidgets.QHBoxLayout()
         blinkHeight_layout.setContentsMargins(1, 1, 1, 1)
-        blinkHeight_layout.addWidget(self.blinkHeight_value)
+        blinkHeight_layout.addWidget(self.blinkH)
         blinkHeight_layout.addWidget(self.blinkHeight_slider)
-        self.blinkHeigh_group.setLayout(blinkHeight_layout)
+        self.blinkHeight_group.setLayout(blinkHeight_layout)
+
+        # Tracking Layout
+        tracking_layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Upper Vertical"))
+        layout.addWidget(self.upperVTrack)
+        layout.addWidget(QtWidgets.QLabel("Upper Horizontal"))
+        layout.addWidget(self.upperHTrack)
+        tracking_layout.addLayout(layout)
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Lower Vertical"))
+        layout.addWidget(self.lowerVTrack)
+        layout.addWidget(QtWidgets.QLabel("Lower Horizontal"))
+        layout.addWidget(self.lowerHTrack)
+        tracking_layout.addLayout(layout)
+        self.tracking_group.setLayout(tracking_layout)
 
         # joints Layout
         headJnt_layout = QtWidgets.QHBoxLayout()
         headJnt_layout.addWidget(self.headJnt_label)
-        headJnt_layout.addWidget(self.headJnt_lineEdit)
+        headJnt_layout.addWidget(self.headJnt)
         headJnt_layout.addWidget(self.headJnt_button)
 
         joints_layout = QtWidgets.QVBoxLayout()
@@ -973,29 +1081,29 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         skinLoops_layout = QtWidgets.QGridLayout()
         skinLoops_layout.addWidget(self.rigidLoops_label, 0, 0)
         skinLoops_layout.addWidget(self.falloffLoops_label, 0, 1)
-        skinLoops_layout.addWidget(self.rigidLoops_value, 1, 0)
-        skinLoops_layout.addWidget(self.falloffLoops_value, 1, 1)
+        skinLoops_layout.addWidget(self.rigidLoops, 1, 0)
+        skinLoops_layout.addWidget(self.falloffLoops, 1, 1)
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.topSkin_check, alignment=0)
+        topoSkin_layout.addWidget(self.doSkin, alignment=0)
         topoSkin_layout.addLayout(skinLoops_layout)
         self.topoSkin_group.setLayout(topoSkin_layout)
 
         # Manual Corners Layout
         intCorner_layout = QtWidgets.QHBoxLayout()
         intCorner_layout.addWidget(self.intCorner_label)
-        intCorner_layout.addWidget(self.intCorner_lineEdit)
+        intCorner_layout.addWidget(self.intCorner)
         intCorner_layout.addWidget(self.intCorner_button)
 
         extCorner_layout = QtWidgets.QHBoxLayout()
         extCorner_layout.addWidget(self.extCorner_label)
-        extCorner_layout.addWidget(self.extCorner_lineEdit)
+        extCorner_layout.addWidget(self.extCorner)
         extCorner_layout.addWidget(self.extCorner_button)
 
         manualCorners_layout = QtWidgets.QVBoxLayout()
         manualCorners_layout.setContentsMargins(6, 4, 6, 4)
-        manualCorners_layout.addWidget(self.manualCorners_check, alignment=0)
+        manualCorners_layout.addWidget(self.customCorner, alignment=0)
         manualCorners_layout.addLayout(intCorner_layout)
         manualCorners_layout.addLayout(extCorner_layout)
         self.manualCorners_group.setLayout(manualCorners_layout)
@@ -1003,40 +1111,47 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Options Layout
         parent_layout = QtWidgets.QHBoxLayout()
         parent_layout.addWidget(self.parent_label)
-        parent_layout.addWidget(self.parent_lineEdit)
+        parent_layout.addWidget(self.parent_node)
         parent_layout.addWidget(self.parent_button)
+        parent_layout.addWidget(self.aim_controller_label)
+        parent_layout.addWidget(self.aim_controller)
+        parent_layout.addWidget(self.aim_controller_button)
         offset_layout = QtWidgets.QHBoxLayout()
         offset_layout.addWidget(self.ctlShapeOffset_label)
-        offset_layout.addWidget(self.ctlShapeOffset_value)
-        ctlGrp_layout = QtWidgets.QHBoxLayout()
-        ctlGrp_layout.addWidget(self.ctlGrp_label)
-        ctlGrp_layout.addWidget(self.ctlGrp_lineEdit)
-        ctlGrp_layout.addWidget(self.ctlGrp_button)
+        offset_layout.addWidget(self.offset)
+        ctlSet_layout = QtWidgets.QHBoxLayout()
+        ctlSet_layout.addWidget(self.ctlSet_label)
+        ctlSet_layout.addWidget(self.ctlSet)
+        ctlSet_layout.addWidget(self.ctlSet_button)
         deformersGrp_layout = QtWidgets.QHBoxLayout()
-        deformersGrp_layout.addWidget(self.deformersGrp_label)
-        deformersGrp_layout.addWidget(self.deformersGrp_lineEdit)
-        deformersGrp_layout.addWidget(self.deformersGrp_button)
+        deformersGrp_layout.addWidget(self.deformersSet_label)
+        deformersGrp_layout.addWidget(self.defSet)
+        deformersGrp_layout.addWidget(self.deformersSet_button)
+        deformersGrp_layout.addWidget(self.deformers_group_label)
+        deformersGrp_layout.addWidget(self.deformers_group)
+        deformersGrp_layout.addWidget(self.deformers_group_button)
 
         options_layout = QtWidgets.QVBoxLayout()
         options_layout.setContentsMargins(6, 1, 6, 2)
         options_layout.addLayout(parent_layout)
         options_layout.addLayout(offset_layout)
-        options_layout.addWidget(self.blinkHeigh_group)
-        options_layout.addWidget(self.sideRange_check)
-        options_layout.addLayout(ctlGrp_layout)
+        options_layout.addWidget(self.blinkHeight_group)
+        options_layout.addWidget(self.tracking_group)
+        options_layout.addWidget(self.sideRange)
+        options_layout.addLayout(ctlSet_layout)
         options_layout.addLayout(deformersGrp_layout)
         self.options_group.setLayout(options_layout)
 
         # Name prefix
         namePrefix_layout = QtWidgets.QVBoxLayout()
         namePrefix_layout.setContentsMargins(1, 1, 1, 1)
-        namePrefix_layout.addWidget(self.prefix_lineEdit)
+        namePrefix_layout.addWidget(self.namePrefix)
         self.prefix_group.setLayout(namePrefix_layout)
 
         # Name prefix
         controlExtension_layout = QtWidgets.QVBoxLayout()
         controlExtension_layout.setContentsMargins(1, 1, 1, 1)
-        controlExtension_layout.addWidget(self.control_lineEdit)
+        controlExtension_layout.addWidget(self.ctlName)
         self.control_group.setLayout(controlExtension_layout)
 
         # Main Layout
@@ -1050,41 +1165,49 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(self.joints_group)
         main_layout.addWidget(self.topoSkin_group)
         main_layout.addWidget(self.build_button)
+        main_layout.addWidget(self.import_button)
         main_layout.addWidget(self.export_button)
 
         self.setLayout(main_layout)
 
     def create_connections(self):
-        self.blinkHeight_value.valueChanged[int].connect(
+        self.blinkH.valueChanged[int].connect(
             self.blinkHeight_slider.setValue)
         self.blinkHeight_slider.valueChanged[int].connect(
-            self.blinkHeight_value.setValue)
+            self.blinkH.setValue)
 
         self.eyeball_button.clicked.connect(partial(self.populate_object,
-                                                    self.eyeball_lineEdit))
+                                                    self.eyeMesh))
         self.parent_button.clicked.connect(partial(self.populate_object,
-                                                   self.parent_lineEdit))
+                                                   self.parent_node))
+        self.aim_controller_button.clicked.connect(
+            partial(self.populate_object, self.aim_controller)
+        )
         self.headJnt_button.clicked.connect(partial(self.populate_object,
-                                                    self.headJnt_lineEdit,
+                                                    self.headJnt,
                                                     1))
 
         self.edgeloop_button.clicked.connect(self.populate_edgeloop)
 
         self.build_button.clicked.connect(self.buildRig)
+        self.import_button.clicked.connect(self.importDict)
         self.export_button.clicked.connect(self.exportDict)
 
         self.intCorner_button.clicked.connect(partial(self.populate_element,
-                                                      self.intCorner_lineEdit,
+                                                      self.intCorner,
                                                       "vertex"))
         self.extCorner_button.clicked.connect(partial(self.populate_element,
-                                                      self.extCorner_lineEdit,
+                                                      self.extCorner,
                                                       "vertex"))
 
-        self.ctlGrp_button.clicked.connect(partial(self.populate_element,
-                                                   self.ctlGrp_lineEdit,
+        self.ctlSet_button.clicked.connect(partial(self.populate_element,
+                                                   self.ctlSet,
                                                    "objectSet"))
-        self.deformersGrp_button.clicked.connect(partial(
-            self.populate_element, self.deformersGrp_lineEdit, "objectSet"))
+        self.deformersSet_button.clicked.connect(partial(
+            self.populate_element, self.defSet, "objectSet"))
+        self.deformers_group_button.clicked.connect(
+            partial(self.populate_element, self.deformers_group)
+        )
 
     # SLOTS ##########################################################
     def populate_element(self, lEdit, oType="transform"):
@@ -1137,35 +1260,23 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             elif len(edgeList.split(",")) < 4:
                 pm.displayWarning("The minimun edge count is 4")
             else:
-                self.edgeloop_lineEdit.setText(edgeList)
+                self.edgeLoop.setText(edgeList)
 
         else:
             pm.displayWarning("Please select first the eyelid edge loop.")
 
     def populateDict(self):
-        self.buildDict = {}
-        blinkH = float(self.blinkHeight_value.value()) / 100.0
-        self.buildDict["eye"] = [self.eyeball_lineEdit.text(),
-                                 self.edgeloop_lineEdit.text(),
-                                 blinkH,
-                                 self.prefix_lineEdit.text(),
-                                 self.ctlShapeOffset_value.value(),
-                                 self.rigidLoops_value.value(),
-                                 self.falloffLoops_value.value(),
-                                 self.headJnt_lineEdit.text(),
-                                 self.topSkin_check.isChecked(),
-                                 self.parent_lineEdit.text(),
-                                 self.control_lineEdit.text(),
-                                 self.sideRange_check.isChecked(),
-                                 self.manualCorners_check.isChecked(),
-                                 self.intCorner_lineEdit.text(),
-                                 self.extCorner_lineEdit.text(),
-                                 self.ctlGrp_lineEdit.text(),
-                                 self.deformersGrp_lineEdit.text()]
+        settings = {}
+        for attr, widget in self.__dict__.iteritems():
+            value = widget_get(widget)
+            if value is not None:
+                settings[attr] = value
+
+        self.buildDict = settings
 
     def buildRig(self):
         self.populateDict()
-        eyeRig(*self.buildDict["eye"])
+        eyeRig(**self.buildDict)
 
     def exportDict(self):
         self.populateDict()
@@ -1183,11 +1294,31 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         f.write(data_string)
         f.close()
 
+    def importDict(self):
+        filePath = pm.fileDialog2(
+            dialogStyle=2,
+            fileMode=1,
+            fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
+        if not filePath:
+            return
+        if not isinstance(filePath, basestring):
+            filePath = filePath[0]
+
+        settings = {}
+        with open(filePath, "r") as f:
+            settings = json.load(f)
+
+        for attr, widget in self.__dict__.iteritems():
+            if attr not in settings.keys():
+                continue
+
+            widget_set(widget, settings[attr])
+
 
 # build lips from json file:
 def eyesFromfile(path):
     buildDict = json.load(open(path))
-    eyeRig(*buildDict["eye"])
+    eyeRig(**buildDict)
 
 
 def showEyeRigUI(*args):
@@ -1197,7 +1328,7 @@ def showEyeRigUI(*args):
 if __name__ == "__main__":
     showEyeRigUI()
 
-    # path = "C:\\Users\\miquel\\Desktop\\eye_L.eyes"
+    # path = r"C:\Users\admin\Desktop\temp.eyes"
     # eyesFromfile(path)
 
     # path = "C:\\Users\\miquel\\Desktop\\eye_R.eyes"
