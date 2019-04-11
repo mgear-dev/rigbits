@@ -17,7 +17,19 @@ def mirror_selection():
 
 def get_controls_without_string(exclusion_string):
     nodes = []
-    for node in pc.PyNode("rig_controllers_grp").members():
+
+    # Find controllers set
+    rig_models = [
+        item for item in pc.ls(transforms=True) if item.hasAttr("is_rig")
+    ]
+    controllers_set = None
+    for node in rig_models[0].rigGroups.inputs():
+        if node.name().endswith("controllers_grp"):
+            controllers_set = node
+            break
+
+    # Find all nodes without exclusion_string
+    for node in controllers_set.members():
         if exclusion_string in node.name():
             continue
 
