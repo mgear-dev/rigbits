@@ -69,3 +69,23 @@ def get_file_path(filter):
         file_path = file_path[0]
 
     return file_path
+
+
+def get_edge_loop_from_selection():
+    selection = pymel.core.selected(fl=1)
+    if selection:
+        edge_list = ""
+        separator = ""
+        for edge in selection:
+            if isinstance(edge, pymel.core.MeshEdge):
+                if edge_list:
+                    separator = ","
+                edge_list = edge_list + separator + str(edge)
+        if not edge_list:
+            pymel.core.displayWarning("Please select first the edge loop.")
+        elif len(edge_list.split(",")) < 4:
+            pymel.core.displayWarning("The minimun edge count is 4")
+        else:
+            return edge_list
+    else:
+        pymel.core.displayWarning("Please select first the edge loop.")

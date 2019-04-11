@@ -1221,24 +1221,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("Please select first the  object.")
 
     def populate_edgeloop(self):
-        oSel = pm.selected(fl=1)
-        if oSel:
-            edgeList = ""
-            separator = ""
-            for e in oSel:
-                if isinstance(e, pm.MeshEdge):
-                    if edgeList:
-                        separator = ","
-                    edgeList = edgeList + separator + str(e)
-            if not edgeList:
-                pm.displayWarning("Please select first the eyelid edge loop.")
-            elif len(edgeList.split(",")) < 4:
-                pm.displayWarning("The minimun edge count is 4")
-            else:
-                self.edgeLoop.setText(edgeList)
-
-        else:
-            pm.displayWarning("Please select first the eyelid edge loop.")
+        self.edgeLoop.setText(lib.get_edge_loop_from_selection())
 
     def build_rig(self):
         rig(**lib.get_settings_from_widget(self))
