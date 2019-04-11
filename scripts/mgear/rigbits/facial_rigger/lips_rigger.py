@@ -270,6 +270,122 @@ def rig(edge_loop="",
         crv.attr("visibility").set(False)
 
     ##################
+    # Joints
+    ##################
+
+    lvlType = "transform"
+
+    # upper joints
+    upperJoints = []
+    cvs = upCrv.getCVs(space="world")
+    pm.progressWindow(title='Creating Upper Joints', progress=0, max=len(cvs))
+
+    for i, cv in enumerate(cvs):
+        pm.progressWindow(e=True,
+                          step=1,
+                          status='\nCreating Joint for  %s' % cv)
+        oTransUpV = pm.PyNode(pm.createNode(
+            lvlType,
+            n=setName("upLipRopeUpv", idx=str(i).zfill(3)),
+            p=lipsRope_root,
+            ss=True))
+        oTrans = pm.PyNode(
+            pm.createNode(lvlType,
+                          n=setName("upLipRope", idx=str(i).zfill(3)),
+                          p=lipsRope_root, ss=True))
+
+        oParam, oLength = curve.getCurveParamAtPosition(upRope, cv)
+        uLength = curve.findLenghtFromParam(upRope, oParam)
+        u = uLength / oLength
+
+        applyop.pathCns(
+            oTransUpV, upRope_upv, cnsType=False, u=u, tangent=False)
+
+        cns = applyop.pathCns(
+            oTrans, upRope, cnsType=False, u=u, tangent=False)
+
+        cns.setAttr("worldUpType", 1)
+        cns.setAttr("frontAxis", 0)
+        cns.setAttr("upAxis", 1)
+
+        pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
+                       cns.attr("worldUpMatrix"))
+
+        # getting joint parent
+        if head_joint and isinstance(head_joint, (str, unicode)):
+            try:
+                j_parent = pm.PyNode(head_joint)
+            except pm.MayaNodeError:
+                j_parent = False
+        elif head_joint and isinstance(head_joint, pm.PyNode):
+            j_parent = head_joint
+        else:
+            j_parent = False
+
+        jnt = rigbits.addJnt(oTrans, noReplace=True, parent=j_parent)
+        upperJoints.append(jnt)
+        pm.sets(defset, add=jnt)
+    pm.progressWindow(e=True, endProgress=True)
+
+    # lower joints
+    lowerJoints = []
+    cvs = lowCrv.getCVs(space="world")
+    pm.progressWindow(title='Creating Lower Joints', progress=0, max=len(cvs))
+
+    for i, cv in enumerate(cvs):
+        pm.progressWindow(e=True,
+                          step=1,
+                          status='\nCreating Joint for  %s' % cv)
+        oTransUpV = pm.PyNode(pm.createNode(
+            lvlType,
+            n=setName("lowLipRopeUpv", idx=str(i).zfill(3)),
+            p=lipsRope_root,
+            ss=True))
+
+        oTrans = pm.PyNode(pm.createNode(
+            lvlType,
+            n=setName("lowLipRope", idx=str(i).zfill(3)),
+            p=lipsRope_root,
+            ss=True))
+
+        oParam, oLength = curve.getCurveParamAtPosition(lowRope, cv)
+        uLength = curve.findLenghtFromParam(lowRope, oParam)
+        u = uLength / oLength
+
+        applyop.pathCns(oTransUpV,
+                        lowRope_upv,
+                        cnsType=False,
+                        u=u,
+                        tangent=False)
+        cns = applyop.pathCns(oTrans,
+                              lowRope,
+                              cnsType=False,
+                              u=u,
+                              tangent=False)
+
+        cns.setAttr("worldUpType", 1)
+        cns.setAttr("frontAxis", 0)
+        cns.setAttr("upAxis", 1)
+
+        pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
+                       cns.attr("worldUpMatrix"))
+
+        # getting joint parent
+        if jaw_joint and isinstance(jaw_joint, (str, unicode)):
+            try:
+                j_parent = pm.PyNode(jaw_joint)
+            except pm.MayaNodeError:
+                pass
+        elif jaw_joint and isinstance(jaw_joint, pm.PyNode):
+            j_parent = jaw_joint
+        else:
+            j_parent = False
+        jnt = rigbits.addJnt(oTrans, noReplace=True, parent=j_parent)
+        lowerJoints.append(jnt)
+        pm.sets(defset, add=jnt)
+    pm.progressWindow(e=True, endProgress=True)
+
+    ##################
     # Controls
     ##################
 
@@ -305,13 +421,36 @@ def rig(edge_loop="",
     v0 = transform.getTransformFromPos(cvs[0])
     v1 = transform.getTransformFromPos(cvs[-1])
     distSize = vector.getDistance(v0, v1) * 3
-    # print distSize
 
     for i, cv in enumerate(cvs):
         pm.progressWindow(e=True,
                           step=1,
                           status='\nCreating control for%s' % cv)
         t = transform.getTransformFromPos(cv)
+
+        # Get nearest joint for orientation of controls
+        joints = upperJoints + lowerJoints
+        nearest_joint = None
+        nearest_distance = None
+        for joint in joints:
+            distance = vector.getDistance(
+                transform.getTranslation(joint),
+                cv
+            )
+            if distance < nearest_distance or nearest_distance is None:
+                nearest_distance = distance
+                nearest_joint = joint
+
+        if nearest_joint:
+            t = transform.setMatrixPosition(
+                transform.getTransform(nearest_joint), cv
+            )
+            temp = primitive.addTransform(
+                lips_root, setName("temp"), t
+            )
+            temp.rx.set(0)
+            t = transform.getTransform(temp)
+            pm.delete(temp)
 
         oName = upCtlOptions[i][0]
         oSide = upCtlOptions[i][1]
@@ -358,6 +497,30 @@ def rig(edge_loop="",
                           status='\nCreating control for%s' % cv)
 
         t = transform.getTransformFromPos(cv)
+
+        # Get nearest joint for orientation of controls
+        joints = upperJoints + lowerJoints
+        nearest_joint = None
+        nearest_distance = None
+        for joint in joints:
+            distance = vector.getDistance(
+                transform.getTranslation(joint),
+                cv
+            )
+            if distance < nearest_distance or nearest_distance is None:
+                nearest_distance = distance
+                nearest_joint = joint
+
+        if nearest_joint:
+            t = transform.setMatrixPosition(
+                transform.getTransform(nearest_joint), cv
+            )
+            temp = primitive.addTransform(
+                lips_root, setName("temp"), t
+            )
+            temp.rx.set(0)
+            t = transform.getTransform(temp)
+            pm.delete(temp)
 
         oName = lowCtlOptions[i][0]
         oSide = lowCtlOptions[i][1]
@@ -482,122 +645,6 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
-
-    ##################
-    # Joints
-    ##################
-
-    lvlType = "transform"
-
-    # upper joints
-    upperJoints = []
-    cvs = upCrv.getCVs(space="world")
-    pm.progressWindow(title='Creating Upper Joints', progress=0, max=len(cvs))
-
-    for i, cv in enumerate(cvs):
-        pm.progressWindow(e=True,
-                          step=1,
-                          status='\nCreating Joint for  %s' % cv)
-        oTransUpV = pm.PyNode(pm.createNode(
-            lvlType,
-            n=setName("upLipRopeUpv", idx=str(i).zfill(3)),
-            p=lipsRope_root,
-            ss=True))
-        oTrans = pm.PyNode(
-            pm.createNode(lvlType,
-                          n=setName("upLipRope", idx=str(i).zfill(3)),
-                          p=lipsRope_root, ss=True))
-
-        oParam, oLength = curve.getCurveParamAtPosition(upRope, cv)
-        uLength = curve.findLenghtFromParam(upRope, oParam)
-        u = uLength / oLength
-
-        applyop.pathCns(
-            oTransUpV, upRope_upv, cnsType=False, u=u, tangent=False)
-
-        cns = applyop.pathCns(
-            oTrans, upRope, cnsType=False, u=u, tangent=False)
-
-        cns.setAttr("worldUpType", 1)
-        cns.setAttr("frontAxis", 0)
-        cns.setAttr("upAxis", 1)
-
-        pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
-                       cns.attr("worldUpMatrix"))
-
-        # getting joint parent
-        if head_joint and isinstance(head_joint, (str, unicode)):
-            try:
-                j_parent = pm.PyNode(head_joint)
-            except pm.MayaNodeError:
-                j_parent = False
-        elif head_joint and isinstance(head_joint, pm.PyNode):
-            j_parent = head_joint
-        else:
-            j_parent = False
-
-        jnt = rigbits.addJnt(oTrans, noReplace=True, parent=j_parent)
-        upperJoints.append(jnt)
-        pm.sets(defset, add=jnt)
-    pm.progressWindow(e=True, endProgress=True)
-
-    # lower joints
-    lowerJoints = []
-    cvs = lowCrv.getCVs(space="world")
-    pm.progressWindow(title='Creating Lower Joints', progress=0, max=len(cvs))
-
-    for i, cv in enumerate(cvs):
-        pm.progressWindow(e=True,
-                          step=1,
-                          status='\nCreating Joint for  %s' % cv)
-        oTransUpV = pm.PyNode(pm.createNode(
-            lvlType,
-            n=setName("lowLipRopeUpv", idx=str(i).zfill(3)),
-            p=lipsRope_root,
-            ss=True))
-
-        oTrans = pm.PyNode(pm.createNode(
-            lvlType,
-            n=setName("lowLipRope", idx=str(i).zfill(3)),
-            p=lipsRope_root,
-            ss=True))
-
-        oParam, oLength = curve.getCurveParamAtPosition(lowRope, cv)
-        uLength = curve.findLenghtFromParam(lowRope, oParam)
-        u = uLength / oLength
-
-        applyop.pathCns(oTransUpV,
-                        lowRope_upv,
-                        cnsType=False,
-                        u=u,
-                        tangent=False)
-        cns = applyop.pathCns(oTrans,
-                              lowRope,
-                              cnsType=False,
-                              u=u,
-                              tangent=False)
-
-        cns.setAttr("worldUpType", 1)
-        cns.setAttr("frontAxis", 0)
-        cns.setAttr("upAxis", 1)
-
-        pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
-                       cns.attr("worldUpMatrix"))
-
-        # getting joint parent
-        if jaw_joint and isinstance(jaw_joint, (str, unicode)):
-            try:
-                j_parent = pm.PyNode(jaw_joint)
-            except pm.MayaNodeError:
-                pass
-        elif jaw_joint and isinstance(jaw_joint, pm.PyNode):
-            j_parent = jaw_joint
-        else:
-            j_parent = False
-        jnt = rigbits.addJnt(oTrans, noReplace=True, parent=j_parent)
-        lowerJoints.append(jnt)
-        pm.sets(defset, add=jnt)
-    pm.progressWindow(e=True, endProgress=True)
 
     ###########################################
     # Connecting rig
