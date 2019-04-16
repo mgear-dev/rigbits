@@ -1040,7 +1040,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             lib.get_settings_from_widget(self), indent=4, sort_keys=True
         )
 
-        file_path = lib.get_file_path(self.filter)
+        file_path = lib.get_file_path(self.filter, "save")
         if not file_path:
             return
 
@@ -1048,7 +1048,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             f.write(data_string)
 
     def import_settings(self):
-        file_path = lib.get_file_path(self.filter)
+        file_path = lib.get_file_path(self.filter, "open")
         if not file_path:
             return
 
