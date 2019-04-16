@@ -62,7 +62,7 @@ def get_file_path(filter, mode):
     if mode == "open":
         filemode = 1
     if mode == "save":
-        filemode = 2
+        filemode = 0
 
     file_path = pymel.core.fileDialog2(
         dialogStyle=2,
