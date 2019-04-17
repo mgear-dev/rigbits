@@ -57,10 +57,16 @@ def get_settings_from_widget(widget):
     return settings
 
 
-def get_file_path(filter):
+def get_file_path(filter, mode):
+    filemode = None
+    if mode == "open":
+        filemode = 1
+    if mode == "save":
+        filemode = 0
+
     file_path = pymel.core.fileDialog2(
         dialogStyle=2,
-        fileMode=1,
+        fileMode=filemode,
         fileFilter=filter
     )
     if not file_path:
