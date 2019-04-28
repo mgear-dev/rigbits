@@ -221,6 +221,8 @@ def rig(eyeMesh=None,
         lowCrv, setName("lowBlink_target"), nbPoints=30, parent=eyeCrv_root)
     midTarget = curve.createCurveFromCurve(
         lowCrv, setName("midBlink_target"), nbPoints=30, parent=eyeCrv_root)
+    midTargetLower = curve.createCurveFromCurve(
+        lowCrv, setName("midBlinkLower_target"), nbPoints=30, parent=eyeCrv_root)
 
     rigCrvs = [upCrv,
                lowCrv,
@@ -230,7 +232,8 @@ def rig(eyeMesh=None,
                lowBlink,
                upTarget,
                lowTarget,
-               midTarget]
+               midTarget,
+               midTargetLower]
 
     for crv in rigCrvs:
         crv.attr("visibility").set(False)
@@ -536,28 +539,36 @@ def rig(eyeMesh=None,
                                upBlink,
                                n="blendShapeUpBlink")
     bs_lowBlink = pm.blendShape(lowTarget,
-                                midTarget,
+                                midTargetLower,
                                 lowBlink,
                                 n="blendShapeLowBlink")
     bs_mid = pm.blendShape(lowTarget,
                            upTarget,
                            midTarget,
-                           n="blendShapeLowBlink")
+                           n="blendShapeMidBlink")
+    bs_midLower = pm.blendShape(lowTarget,
+                           upTarget,
+                           midTargetLower,
+                           n="blendShapeMidLowerBlink")
 
     # setting blendshape reverse connections
     rev_node = pm.createNode("reverse")
     pm.connectAttr(bs_upBlink[0].attr(midTarget.name()), rev_node + ".inputX")
     pm.connectAttr(rev_node + ".outputX", bs_upBlink[0].attr(upTarget.name()))
     rev_node = pm.createNode("reverse")
-    pm.connectAttr(bs_lowBlink[0].attr(midTarget.name()), rev_node + ".inputX")
+    rev_nodeLower = pm.createNode("reverse")
+    pm.connectAttr(bs_lowBlink[0].attr(midTargetLower.name()), rev_node + ".inputX")
     pm.connectAttr(rev_node + ".outputX",
                    bs_lowBlink[0].attr(lowTarget.name()))
     rev_node = pm.createNode("reverse")
     pm.connectAttr(bs_mid[0].attr(upTarget.name()), rev_node + ".inputX")
+    pm.connectAttr(bs_midLower[0].attr(upTarget.name()), rev_nodeLower + ".inputX")
     pm.connectAttr(rev_node + ".outputX", bs_mid[0].attr(lowTarget.name()))
+    pm.connectAttr(rev_nodeLower + ".outputX", bs_midLower[0].attr(lowTarget.name()))
 
     # setting default values
     bs_mid[0].attr(upTarget.name()).set(blinkH)
+    bs_midLower[0].attr(upTarget.name()).set(blinkH)
 
     # joints root
     jnt_root = primitive.addTransformFromPos(
@@ -680,16 +691,24 @@ def rig(eyeMesh=None,
     up_ctl = upControls[2]
     blink_att = attribute.addAttribute(
         over_ctl, "blink", "float", 0, minValue=0, maxValue=1)
+    blinkUpper_att = attribute.addAttribute(
+        over_ctl, "upperBlink", "float", 0, minValue=0, maxValue=1)
+    blinkLower_att = attribute.addAttribute(
+        over_ctl, "lowerBlink", "float", 0, minValue=0, maxValue=1)
     blinkMult_att = attribute.addAttribute(
         over_ctl, "blinkMult", "float", 1, minValue=1, maxValue=2)
     midBlinkH_att = attribute.addAttribute(
-        over_ctl, "blinkHeight", "float", blinkH, minValue=0, maxValue=1)
-    mult_node = node.createMulNode(blink_att, blinkMult_att)
+        over_ctl, "blinkHeightUpper", "float", blinkH, minValue=0, maxValue=1)
+    midBlinkLowerH_att = attribute.addAttribute(
+        over_ctl, "blinkHeightLower", "float", blinkH, minValue=0, maxValue=1)
+    mult_node = node.createMulNode(blinkUpper_att, blinkMult_att)
+    mult_nodeLower = node.createMulNode(blinkLower_att, blinkMult_att)
     pm.connectAttr(mult_node + ".outputX",
                    bs_upBlink[0].attr(midTarget.name()))
-    pm.connectAttr(mult_node + ".outputX",
-                   bs_lowBlink[0].attr(midTarget.name()))
+    pm.connectAttr(mult_nodeLower + ".outputX",
+                   bs_lowBlink[0].attr(midTargetLower.name()))
     pm.connectAttr(midBlinkH_att, bs_mid[0].attr(upTarget.name()))
+    pm.connectAttr(midBlinkLowerH_att, bs_midLower[0].attr(upTarget.name()))
 
     low_ctl = lowControls[2]
 
@@ -745,10 +764,11 @@ def rig(eyeMesh=None,
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
 
     # Tension on blink
-    node.createReverseNode(blink_att, w1.scale[0])
-    node.createReverseNode(blink_att, w3.scale[0])
-    node.createReverseNode(blink_att, w2.scale[0])
-    node.createReverseNode(blink_att, w4.scale[0])
+    # 1 and 3 are upper. 2 and 4 are lower.
+    node.createReverseNode(blinkUpper_att, w1.scale[0])
+    node.createReverseNode(blinkUpper_att, w3.scale[0])
+    node.createReverseNode(blinkLower_att, w2.scale[0])
+    node.createReverseNode(blinkLower_att, w4.scale[0])
 
     ###########################################
     # Reparenting
