@@ -777,11 +777,25 @@ def rig(eyeMesh=None,
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
 
     # Tension on blink
+    # Drive the clamped blinks through to the blink tension wire deformers
+    # Add blink + upper and blink + lower so animator can use both.
+    # But also clamp them so using both doesn't exceed 1.0
+    blinkAdd = pm.createNode('plusMinusAverage')
+    blinkClamp = pm.createNode('clamp')
+    blinkClamp.maxR.set(1.0)
+    blinkClamp.maxG.set(1.0)
+    blink_att.connect(blinkAdd.input2D[0].input2Dx)
+    blink_att.connect(blinkAdd.input2D[0].input2Dy)
+    blinkUpper_att.connect(blinkAdd.input2D[1].input2Dx)
+    blinkLower_att.connect(blinkAdd.input2D[1].input2Dy)
+    addOutput = blinkAdd.output2D
+    addOutput.output2Dx.connect(blinkClamp.inputR)
+    addOutput.output2Dy.connect(blinkClamp.inputG)
     # 1 and 3 are upper. 2 and 4 are lower.
-    node.createReverseNode(blinkUpper_att, w1.scale[0])
-    node.createReverseNode(blinkUpper_att, w3.scale[0])
-    node.createReverseNode(blinkLower_att, w2.scale[0])
-    node.createReverseNode(blinkLower_att, w4.scale[0])
+    node.createReverseNode(blinkClamp.outputR, w1.scale[0])
+    node.createReverseNode(blinkClamp.outputR, w3.scale[0])
+    node.createReverseNode(blinkClamp.outputG, w2.scale[0])
+    node.createReverseNode(blinkClamp.outputG, w4.scale[0])
 
     ###########################################
     # Reparenting
