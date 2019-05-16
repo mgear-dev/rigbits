@@ -577,6 +577,7 @@ def rig(eyeMesh=None,
     if deformers_group:
         deformers_group = pm.PyNode(deformers_group)
         pm.parentConstraint(eye_root, jnt_root, mo=True)
+        pm.scaleConstraint(eye_root, jnt_root, mo=True)
         deformers_group.addChild(jnt_root)
 
     # head joint
