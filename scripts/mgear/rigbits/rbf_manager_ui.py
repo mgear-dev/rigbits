@@ -680,6 +680,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         else:
             if self.zeroedDefaults:
                 rbfNode.applyDefaultPose()
+
             else:
 
                 poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
