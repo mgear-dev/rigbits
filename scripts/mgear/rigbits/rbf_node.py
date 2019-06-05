@@ -149,7 +149,7 @@ def addDrivenGroup(node):
 
     for attr in pm.listAttr(node, userDefined=True) or []:
         if not mc.objExists("{}.{}".format(drivenName, attr)):
-            add_attribute(node, drivenName, attr)
+            add_attribute(node.name(), drivenName, attr)
     if node.endswith(CTL_SUFFIX):
         copyInverseMirrorAttrs(node, drivenName)
     pm.parent(node, drivenName)
