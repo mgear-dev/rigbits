@@ -28,12 +28,16 @@ def get_controls_without_string(exclusion_string):
             controllers_set = node
             break
 
-    # Find all nodes without exclusion_string
+    # Collect all transforms from set and subsets.
+    nodes = []
     for node in controllers_set.members():
-        if exclusion_string in node.name():
-            continue
+        if node.nodeType() == "objectSet":
+            nodes.extend(node.members())
+        else:
+            nodes.append(node)
 
-        nodes.append(node)
+    # Find all nodes without exclusion_string
+    nodes = [x for x in nodes if exclusion_string not in x.name()]
 
     return nodes
 
