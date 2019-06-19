@@ -27,7 +27,7 @@ def install():
         ("-----", None),
         (None, gimmick_submenu),
         ("-----", None),
-        ("Mirror Controls", mirror_controls.show),
+        ("Mirror Controls Shape", mirror_controls.show),
         ("Replace Shape", rigbits.replaceShape),
         ("-----", None),
         ("Match All Transform", rigbits.matchWorldXform),
