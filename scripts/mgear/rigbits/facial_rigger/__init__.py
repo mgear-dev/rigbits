@@ -4,6 +4,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 import mgear.core.pyqt as gqt
 from . import eye_rigger
 from . import lips_rigger
+from . import brow_rigger
 from . import lib
 
 
@@ -17,7 +18,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         tab_widget = QtWidgets.QTabWidget()
 
-        dialogs = [eye_rigger.ui(), lips_rigger.ui()]
+        dialogs = [eye_rigger.ui(), brow_rigger.ui(), lips_rigger.ui()]
         for dialog in dialogs:
             tab_widget.addTab(dialog, dialog.windowTitle())
 
@@ -29,6 +30,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 def show(*args):
     reload(eye_rigger)
     reload(lips_rigger)
+    reload(brow_rigger)
     reload(lib)
 
     gqt.showDialog(ui)
