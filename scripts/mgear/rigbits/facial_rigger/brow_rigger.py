@@ -14,29 +14,29 @@ from mgear import rigbits
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, pickWalk
 
-from . import lib
-from . import helpers
-from . import constraints
+from mgear.rigbits.facial_rigger import lib
+from mgear.rigbits.facial_rigger import helpers
+from mgear.rigbits.facial_rigger import constraints
 
 
-def rig(eLoop,
-        namePrefix,
+def rig(edge_loop,
+        name_prefix,
         thickness,
-        mainDivisions,
-        secDivisions,
-        doSkin,
-        secondaryCtlCheck,
-        symmetryMode,
+        main_div,
+        sec_div,
+        do_skin,
+        secondary_ctl_check,
+        symmetry_mode,
         side,
-        rigidLoops,
-        falloffLoops,
-        c_BrowJnt=None,
-        l_BrowJnt=None,
-        r_BrowJnt=None,
-        l_CtlParent=None,
-        r_CtlParent=None,
-        parent=None,
-        ctlName="ctl"):
+        rigid_loops,
+        falloff_loops,
+        brow_jnt_C=None,
+        brow_jnt_L=None,
+        brow_jnt_R=None,
+        ctl_parent_L=None,
+        ctl_parent_R=None,
+        parent_node=None,
+        ctl_name="ctl"):
     ######
     # Var
     ######
@@ -44,29 +44,29 @@ def rig(eLoop,
     NB_ROPE = 10
     midDivisions = 3
 
-    doSkin = False  # skinning will be disabled by default.
+    do_skin = False  # skinning will be disabled by default.
 
     ####################
     # Validate Data
     # ##################
-    eLoops = {}  # collect edge loops and it's sides in DICT
+    edge_loops = {}  # collect edge loops and it's sides in DICT
     controls_collect = []  # collect parent controls
     joints_collect = []  # collect parent joints
 
     # divisions
-    mainDivisions = int(mainDivisions)
-    secDivisions = int(secDivisions)
+    main_div = int(main_div)
+    sec_div = int(sec_div)
     # Edges
 
-    if eLoop:
+    if edge_loop:
         try:
-            eLoop = [pm.PyNode(e) for e in eLoop.split(",")]
+            edge_loop = [pm.PyNode(e) for e in edge_loop.split(",")]
         except pm.MayaNodeError:
             pm.displayWarning(
                 "Some of the edges listed in edge loop can not be found")
             return
     # Geo
-        geo = pm.listRelatives(eLoop[0], parent=True)[0]
+        geo = pm.listRelatives(edge_loop[0], parent=True)[0]
         geoTransform = pm.listRelatives(geo, fullPath=False, parent=True)[0]
 
     else:
@@ -75,31 +75,31 @@ def rig(eLoop,
 
     # symmetry mode
     # 0 => ON  1 = > OFF
-    if symmetryMode == 0:
+    if symmetry_mode == 0:
         # symmetry is on, collect required data
         # mirror edge loop
         mLoop = []
-        for edge in eLoop:
+        for edge in edge_loop:
             mEdge = meshNavigation.find_mirror_edge(geoTransform,
                                                     edge.indices()[0])
             mLoop.append(mEdge)
 
-        if len(mLoop) != len(eLoop):
+        if len(mLoop) != len(edge_loop):
             pm.displayWarning(
                 "Mesh is not symmetrical, please fix it or create temp GEO")
             return
 
         # set side
-        if eLoop[0].getPoint(0, space='world') > 0:
+        if edge_loop[0].getPoint(0, space='world') > 0:
             # left
             side = "L"
-            l_Loop = eLoop
+            l_Loop = edge_loop
             r_Loop = mLoop
         else:
             # right
             side = "R"
             l_Loop = mLoop
-            r_Loop = eLoop
+            r_Loop = edge_loop
 
         # get edges for center module
         p1 = l_Loop[0].getPoint(0, space='world')[0]
@@ -124,7 +124,7 @@ def rig(eLoop,
                   ass=True,
                   ns=True)
                   if pm.PyNode(e) not in l_Loop and pm.PyNode(e) not in r_Loop]
-        eLoops = dict(zip(["L", "R", "C"], [l_Loop, r_Loop, c_Loop]))
+        edge_loops = dict(zip(["L", "R", "C"], [l_Loop, r_Loop, c_Loop]))
 
     else:
         # symmetry is off
@@ -136,107 +136,105 @@ def rig(eLoop,
         else:
             side = "C"
         # set
-        c_Loop = eLoop
-        eLoops = dict(zip([side], [c_Loop]))
+        c_Loop = edge_loop
+        edge_loops = dict(zip([side], [c_Loop]))
 
     # parent node
-    if parent:
+    if parent_node:
         try:
-            parentNode = pm.PyNode(parent)
+            parent_node = pm.PyNode(parent_node)
         except pm.MayaNodeError:
             pm.displayWarning(
-                "Static rig parent: %s can not be found" % parentNode)
+                "Static rig parent: %s can not be found" % parent_node)
             return
 
-    # parent joints
-    # 0 => ON  1 = > OFF
-    # center main joint parent
-    if c_BrowJnt:
+
+    if brow_jnt_C:
         try:
-            c_BrowJnt = pm.PyNode(c_BrowJnt)
-            joints_collect.append(c_BrowJnt)
+            brow_jnt_C = pm.PyNode(brow_jnt_C)
+            joints_collect.append(brow_jnt_C)
         except pm.MayaNodeError:
             pm.displayWarning(
-                "Mid parent joint: %s can not be found" % c_BrowJnt)
+                "Mid parent joint: %s can not be found" % brow_jnt_C)
             return
     else:
         pm.displayWarning("Main parent joints is required. It would be used"
                           " as main parent if side parents are not set.")
         return
 
-    if symmetryMode == 0:
-        if l_BrowJnt:
+    if symmetry_mode == 0:
+        if brow_jnt_L:
             try:
-                l_BrowJnt = pm.PyNode(l_BrowJnt)
-                joints_collect.append(l_BrowJnt)
+                brow_jnt_L = pm.PyNode(brow_jnt_L)
+                joints_collect.append(brow_jnt_L)
             except pm.MayaNodeError:
                 pm.displayWarning(
-                    "Left parent joint: %s can not be found" % l_BrowJnt)
+                    "Left parent joint: %s can not be found" % brow_jnt_L)
                 return
         else:
             pm.displayWarning(
                 "With symmetry mode you need to set the left parent joint.")
             return
 
-        if r_BrowJnt:
+        if brow_jnt_R:
             try:
-                r_BrowJnt = pm.PyNode(r_BrowJnt)
-                joints_collect.append(r_BrowJnt)
+                brow_jnt_R = pm.PyNode(brow_jnt_R)
+                joints_collect.append(brow_jnt_R)
             except pm.MayaNodeError:
                 pm.displayWarning(
-                    "Right parent joint: %s can not be found." % r_BrowJnt)
+                    "Right parent joint: %s can not be found." % brow_jnt_R)
                 return
         else:
             try:
-                r_BrowJnt = pickWalk.getMirror(l_BrowJnt)[0]
-                joints_collect.append(r_BrowJnt)
+                brow_jnt_R = pickWalk.getMirror(brow_jnt_L)[0]
+                joints_collect.append(brow_jnt_R)
             except pm.MayaNodeError:
                 pm.displayWarning(
                     "Right parent joint: "
-                    "%s can not be found. Please set it manually." % r_BrowJnt)
+                    "%s can not be found. Please set it manually." % brow_jnt_R)
                 return
 
     # parent controls
-    if l_CtlParent:
+    if ctl_parent_L:
         try:
-            l_CtlParent = pm.PyNode(l_CtlParent)
-            controls_collect.append(l_CtlParent)
+            ctl_parent_L = pm.PyNode(ctl_parent_L)
+            controls_collect.append(ctl_parent_L)
         except pm.MayaNodeError:
             pm.displayWarning(
-                "Right (Left) ctl: %s can not be found" % l_CtlParent)
+                "Right (Left) ctl: %s can not be found" % ctl_parent_L)
             return
     else:
-        l_CtlParent = l_BrowJnt
+        ctl_parent_L = brow_jnt_L
 
-    if symmetryMode == 0:
-        if r_CtlParent:
+    if symmetry_mode == 0:
+        if ctl_parent_R:
             try:
-                r_CtlParent = pm.PyNode(r_CtlParent)
-                controls_collect.append(r_CtlParent)
+                ctl_parent_R = pm.PyNode(ctl_parent_R)
+                controls_collect.append(ctl_parent_R)
             except pm.MayaNodeError:
                 pm.displayWarning(
-                    "Right ctl: %s can not be found" % r_CtlParent)
+                    "Right ctl: %s can not be found" % ctl_parent_R)
                 return
         else:
-            r_CtlParent = r_BrowJnt
+            ctl_parent_R = brow_jnt_R
 
     ##################
     # Helper functions
     # ##################
 
     def setName(name, side="C", idx=None):
-        namesList = [namePrefix, side, name]
+        namesList = [name_prefix, side, name]
         if idx is not None:
             namesList[1] = side + str(idx)
         name = "_".join(namesList)
         return name
 
     def getSide(name):
-        # name = name.strip(namePrefix)
+        # name = name.strip(name_prefix)
 
-        if namePrefix + "_L_" in name.name():
+        if name_prefix + "_L_" in name.name():
             side = "L"
-        elif namePrefix + "_R_" in name.name():
+        elif name_prefix + "_R_" in name.name():
             side = "R"
         else:
             side = "C"
@@ -251,7 +249,7 @@ def rig(eLoop,
     ###################
     # Root creation
     ###################
-    if symmetryMode == 0:
+    if symmetry_mode == 0:
         rootSide = "C"
     else:
         rootSide = side
@@ -313,7 +311,7 @@ def rig(eLoop,
     # ###############################
     # Create curves and controls
     #################################
-    for side, loop in eLoops.items():
+    for side, loop in edge_loops.items():
 
         # create poly based curve for each part
         mainCurve = curve.createCuveFromEdges(loop,
@@ -340,23 +338,23 @@ def rig(eLoop,
         # ###################
         # Get control positions
         #####################
-        if symmetryMode == 0:  # 0 means ON
+        if symmetry_mode == 0:  # 0 means ON
             if side is "C":  # middle segment should be divided into 3 points.
                 mainCtrlPos = helpers.divideSegment(mainCurve, midDivisions)
             else:
-                mainCtrlPos = helpers.divideSegment(mainCurve, mainDivisions)
-            if secondaryCtlCheck is True and side is not "C":
+                mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
+            if secondary_ctl_check is True and side is not "C":
                 # get secondary controls position
-                secCtrlPos = helpers.divideSegment(mainCurve, secDivisions)
+                secCtrlPos = helpers.divideSegment(mainCurve, sec_div)
 
         else:
             print mainCurve
-            print mainDivisions
-            mainCtrlPos = helpers.divideSegment(mainCurve, mainDivisions)
-            if secondaryCtlCheck is True:
+            print main_div
+            mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
+            if secondary_ctl_check is True:
                 # get secondary controls position
 
-                secCtrlPos = helpers.divideSegment(mainCurve, secDivisions)
+                secCtrlPos = helpers.divideSegment(mainCurve, sec_div)
         # ###################
         # Set control options
         #####################
@@ -375,7 +373,7 @@ def rig(eLoop,
                     posPrefix = "out"
                 if side is "C":
                     posPrefix = "out_R"
-                    if symmetryMode is 0:
+                    if symmetry_mode is 0:
                         controlType = "npo"
 
             elif i is (len(mainCtrlPos) - 1):
@@ -385,7 +383,7 @@ def rig(eLoop,
                     posPrefix = "in"
                 if side is "C":
                     posPrefix = "out_L"
-                    if symmetryMode == 0:
+                    if symmetry_mode == 0:
                         controlType = "npo"
             else:
                 posPrefix = "mid_0" + str(i)
@@ -418,7 +416,7 @@ def rig(eLoop,
                            ctlPos]
                 mainCtrlOptions.append(options)
 
-            elif "out_" in posPrefix and symmetryMode == 1:
+            elif "out_" in posPrefix and symmetry_mode == 1:
                 if posPrefix is "out_L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
@@ -456,8 +454,8 @@ def rig(eLoop,
                 mainCtrlOptions.append(options)
 
         # secondary control options
-        if secondaryCtlCheck is True:
-            if symmetryMode == 0:  # 0 means ON
+        if secondary_ctl_check is True:
+            if symmetry_mode == 0:  # 0 means ON
                 secSideRange = "LR"
             else:
                 secSideRange = "CLR"
@@ -478,7 +476,7 @@ def rig(eLoop,
         params = ["tx", "ty", "tz"]
         distSize = 1
 
-        if secondaryCtlCheck is True:
+        if secondary_ctl_check is True:
             controlOptionList = [mainCtrlOptions, secCtrlOptions]
         else:
             controlOptionList = [mainCtrlOptions]
@@ -535,7 +533,7 @@ def rig(eLoop,
                 if o_icon is not "npo":
                     ctl = icon.create(
                         npoBuffer,
-                        setName("%s_%s" % (oName, ctlName), oSide),
+                        setName("%s_%s" % (oName, ctl_name), oSide),
                         position,
                         icon=o_icon,
                         w=wd,
@@ -550,7 +548,7 @@ def rig(eLoop,
                         setName("%s_HookNpo" % oName, oSide),
                         position)
 
-                cname_split = ctlName.split("_")
+                cname_split = ctl_name.split("_")
                 if len(cname_split) == 2 and cname_split[-1] == "ghost":
                     pass
                 else:
@@ -601,7 +599,7 @@ def rig(eLoop,
                 mainCtlCurves.append(mainCtlCurve[0])
 
                 # create upvector curve to drive secondary control
-                if secondaryCtlCheck is True:
+                if secondary_ctl_check is True:
                     if side in secSideRange:
                         mainCtlUpv = helpers.addCurve(
                             browsCrv_root,
@@ -677,14 +675,14 @@ def rig(eLoop,
     ###########################################
     # Connecting controls
     ###########################################
-    if parent:
+    if parent_node:
         try:
-            if isinstance(parent, basestring):
-                parent = pm.PyNode(parent)
-            parent.addChild(brows_root)
+            if isinstance(parent_node, basestring):
+                parent_node = pm.PyNode(parent_node)
+            parent_node.addChild(brows_root)
         except pm.MayaNodeError:
             pm.displayWarning("The brow rig can not be parent to: %s. Maybe "
-                              "this object doesn't exist." % parent)
+                              "this object doesn't exist." % parent_node)
 
     # Reparent controls
 
@@ -703,7 +701,7 @@ def rig(eLoop,
             if "in_ctl" in ctl.name():
                 r_parent = ctl
 
-        if symmetryMode == 0:  # 0 means ON
+        if symmetry_mode == 0:  # 0 means ON
             if ctl_side is "C":
                 if "out_R" in ctl.name():
                     c_outR = ctl
@@ -724,7 +722,7 @@ def rig(eLoop,
                     t_outL = ctl
 
     # parent controls
-    if symmetryMode == 0:
+    if symmetry_mode == 0:
         # inside parents
         pm.parent(l_child.getParent(2), l_parent)
         pm.parent(r_child.getParent(2), r_parent)
@@ -742,7 +740,7 @@ def rig(eLoop,
                                      c_outL.getParent(2),
                                      'srt',
                                      True)
-        constraints.matrixConstraint(c_BrowJnt,
+        constraints.matrixConstraint(brow_jnt_C,
                                      c_mid.getParent(2),
                                      'rs',
                                      True)
@@ -750,12 +748,12 @@ def rig(eLoop,
             ctl_side = getSide(ctl)
 
             if ctl_side is "L" and "_tangent" not in ctl.name():
-                constraints.matrixConstraint(l_CtlParent,
+                constraints.matrixConstraint(ctl_parent_L,
                                              ctl.getParent(2),
                                              'srt',
                                              True)
             if ctl_side is "R" and "_tangent" not in ctl:
-                constraints.matrixConstraint(r_CtlParent,
+                constraints.matrixConstraint(ctl_parent_R,
                                              ctl.getParent(2),
                                              'srt',
                                              True)
@@ -772,15 +770,15 @@ def rig(eLoop,
 
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
-                constraints.matrixConstraint(l_CtlParent,
+                constraints.matrixConstraint(ctl_parent_L,
                                              ctl.getParent(2),
                                              'srt',
                                              True)
 
     # Attach secondary controls to main curve
-    if secondaryCtlCheck is True:
+    if secondary_ctl_check is True:
         secControlsMerged = []
-        if symmetryMode == 0:  # 0 means ON
+        if symmetry_mode == 0:  # 0 means ON
             tempMainCtlCurves = [crv for crv in mainCtlCurves
                                  if getSide(crv) in "LR"]
             tempMainUpvCurves = [crv for crv in mainCtlUpvs
@@ -789,16 +787,16 @@ def rig(eLoop,
             rightSec = []
             for secCtl in secondaryControls:
                 if getSide(secCtl) is "L":
-                    # connect secondary controla rotate/scale to l_CtlParent.
-                    constraints.matrixConstraint(l_CtlParent,
+                    # connect secondary controla rotate/scale to ctl_parent_L.
+                    constraints.matrixConstraint(ctl_parent_L,
                                                  secCtl.getParent(2),
                                                  'rs',
                                                  True)
                     leftSec.append(secCtl)
 
                 if getSide(secCtl) is "R":
-                    # connect secondary controla rotate/scale to l_CtlParent.
-                    constraints.matrixConstraint(r_CtlParent,
+                    # connect secondary controla rotate/scale to ctl_parent_L.
+                    constraints.matrixConstraint(ctl_parent_R,
                                                  secCtl.getParent(2),
                                                  'rs',
                                                  True)
@@ -813,7 +811,7 @@ def rig(eLoop,
             secControlsMerged.append(secondaryControls)
 
             for secCtl in secondaryControls:
-                constraints.matrixConstraint(l_CtlParent,
+                constraints.matrixConstraint(ctl_parent_L,
                                              secCtl.getParent(2),
                                              'rs',
                                              True)
@@ -870,8 +868,8 @@ def rig(eLoop,
 
     # set drivers
     crvDrivers = []
-    if secondaryCtlCheck is True:
-        if symmetryMode == 0:
+    if secondary_ctl_check is True:
+        if symmetry_mode == 0:
             crv = [crv for crv in mainCtlCurves if getSide(crv) is "C"]
             crvDrivers.append(crv[0])
 
@@ -898,15 +896,15 @@ def rig(eLoop,
         cvs = crv.getCVs(space="world")
         side = getSide(crv)
 
-        if symmetryMode == 0:  # 0 means ON
+        if symmetry_mode == 0:  # 0 means ON
             if side is "L":
-                browJoint = l_BrowJnt
+                browJoint = brow_jnt_L
             if side is "R":
-                browJoint = r_BrowJnt
+                browJoint = brow_jnt_R
             if side is "C":
-                browJoint = c_BrowJnt
+                browJoint = brow_jnt_C
         else:
-            browJoint = c_BrowJnt
+            browJoint = brow_jnt_C
 
         for i, cv in enumerate(cvs):
 
@@ -948,15 +946,15 @@ def rig(eLoop,
     ###########################################
     # Auto Skinning
     ###########################################
-    if doSkin:
+    if do_skin:
         print allJoints
         # base skin
-        if c_BrowJnt:
+        if brow_jnt_C:
             try:
-                c_BrowJnt = pm.PyNode(c_BrowJnt)
+                brow_jnt_C = pm.PyNode(brow_jnt_C)
             except pm.MayaNodeError:
                 pm.displayWarning(
-                    "Auto skin aborted can not find %s " % c_BrowJnt)
+                    "Auto skin aborted can not find %s " % brow_jnt_C)
                 return
 
         # Check if the object has a skinCluster
@@ -971,18 +969,18 @@ def rig(eLoop,
                                          nw=2,
                                          n='skinClsBrow')
 
-        totalLoops = rigidLoops + falloffLoops
+        totalLoops = rigid_loops + falloff_loops
 
         # we set the first value 100% for the first initial loop
         skinPercList = [1.0]
         # we expect to have a regular grid topology
-        for r in range(rigidLoops):
+        for r in range(rigid_loops):
             for rr in range(2):
                 skinPercList.append(1.0)
-        increment = 1.0 / float(falloffLoops)
+        increment = 1.0 / float(falloff_loops)
         # we invert to smooth out from 100 to 0
         inv = 1.0 - increment
-        for r in range(falloffLoops):
+        for r in range(falloff_loops):
             for rr in range(2):
                 if inv < 0.0:
                     inv = 0.0
@@ -1000,7 +998,7 @@ def rig(eLoop,
 
         vertexRowsList = []
 
-        for side, loop in eLoops.items():
+        for side, loop in edge_loops.items():
             extr_v = meshNavigation.getExtremeVertexFromLoop(loop)
             vertexList = extr_v[5]
 
@@ -1071,130 +1069,129 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Geometry input controls
         self.geometryInput_group = QtWidgets.QGroupBox("Geometry Input")
-        self.edgeloop_label = QtWidgets.QLabel("Brow Edge Loop:")
-        self.edgeloop_lineEdit = QtWidgets.QLineEdit()
-        self.edgeloop_button = QtWidgets.QPushButton("<<")
-
+        self.edge_loop_label = QtWidgets.QLabel("Brow Edge Loop:")
+        self.edge_loop = QtWidgets.QLineEdit()
+        self.edge_loop_button = QtWidgets.QPushButton("<<")
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
-        self.prefix_lineEdit = QtWidgets.QLineEdit()
-        self.prefix_lineEdit.setText("brow")
+        self.name_prefix = QtWidgets.QLineEdit()
+        self.name_prefix.setText("brow")
 
         # control extension
         self.control_group = QtWidgets.QGroupBox("Control Name Extension")
-        self.control_lineEdit = QtWidgets.QLineEdit()
-        self.control_lineEdit.setText("ctl")
+        self.ctl_name = QtWidgets.QLineEdit()
+        self.ctl_name.setText("ctl")
 
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
-        self.rigidLoops_label = QtWidgets.QLabel("Rigid Loops:")
-        self.rigidLoops_value = QtWidgets.QSpinBox()
-        self.rigidLoops_value.setRange(0, 30)
-        self.rigidLoops_value.setSingleStep(1)
-        self.rigidLoops_value.setValue(5)
-        self.falloffLoops_label = QtWidgets.QLabel("Falloff Loops:")
-        self.falloffLoops_value = QtWidgets.QSpinBox()
-        self.falloffLoops_value.setRange(0, 30)
-        self.falloffLoops_value.setSingleStep(1)
-        self.falloffLoops_value.setValue(8)
+        self.rigid_loops_label = QtWidgets.QLabel("Rigid Loops:")
+        self.rigid_loops = QtWidgets.QSpinBox()
+        self.rigid_loops.setRange(0, 30)
+        self.rigid_loops.setSingleStep(1)
+        self.rigid_loops.setValue(5)
+        self.falloff_loops_label = QtWidgets.QLabel("Falloff Loops:")
+        self.falloff_loops = QtWidgets.QSpinBox()
+        self.falloff_loops.setRange(0, 30)
+        self.falloff_loops.setSingleStep(1)
+        self.falloff_loops.setValue(8)
 
-        self.topSkin_check = QtWidgets.QCheckBox(
+        self.do_skin = QtWidgets.QCheckBox(
             'Compute Topological Autoskin')
-        self.topSkin_check.setChecked(False)
+        self.do_skin.setChecked(False)
 
         # Side
         self.mode_group = QtWidgets.QGroupBox("Symmetry:")
         self.mode_label = QtWidgets.QLabel("Mode:")
-        self.mode_comboBox = QtWidgets.QComboBox()
+        self.symmetry_mode = QtWidgets.QComboBox()
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                            QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.mode_comboBox.sizePolicy().hasHeightForWidth())
-        self.mode_comboBox.setSizePolicy(sizePolicy)
-        self.mode_comboBox.addItem("On")
-        self.mode_comboBox.addItem("Off")
+            self.symmetry_mode.sizePolicy().hasHeightForWidth())
+        self.symmetry_mode.setSizePolicy(sizePolicy)
+        self.symmetry_mode.addItem("On")
+        self.symmetry_mode.addItem("Off")
 
         # Options
         self.options_group = QtWidgets.QGroupBox("Options")
 
         # default options
-        self.browThickness_label = QtWidgets.QLabel("Brow Thickness:")
-        self.browThickness_value = QtWidgets.QDoubleSpinBox()
-        self.browThickness_value.setRange(0, 10)
-        self.browThickness_value.setSingleStep(.01)
-        self.browThickness_value.setValue(.03)
+        self.thickness_label = QtWidgets.QLabel("Brow Thickness:")
+        self.thickness = QtWidgets.QDoubleSpinBox()
+        self.thickness.setRange(0, 10)
+        self.thickness.setSingleStep(.01)
+        self.thickness.setValue(.03)
 
         # Side if single
         self.side_label = QtWidgets.QLabel("Side:")
-        self.side_comboBox = QtWidgets.QComboBox()
+        self.side = QtWidgets.QComboBox()
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                            QtWidgets.QSizePolicy.Fixed)
         # sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.side_comboBox.sizePolicy().hasHeightForWidth())
-        self.side_comboBox.setSizePolicy(sizePolicy)
-        self.side_comboBox.addItem("C")
-        self.side_comboBox.addItem("L")
-        self.side_comboBox.addItem("R")
+            self.side.sizePolicy().hasHeightForWidth())
+        self.side.setSizePolicy(sizePolicy)
+        self.side.addItem("C")
+        self.side.addItem("L")
+        self.side.addItem("R")
 
-        self.side_comboBox.setHidden(True)
+        self.side.setHidden(True)
         self.side_label.setHidden(True)
 
         # main divisions
-        self.mainDivisions_label = QtWidgets.QLabel("Main Controls:")
-        self.mainDivisions_value = QtWidgets.QDoubleSpinBox()
-        self.mainDivisions_value.setRange(0, 10)
-        self.mainDivisions_value.setSingleStep(1)
-        self.mainDivisions_value.setValue(3)
-        self.mainDivisions_value.setDecimals(0)
-        self.mainDivisions_value.setMinimum(3)
+        self.main_div_label = QtWidgets.QLabel("Main Controls:")
+        self.main_div = QtWidgets.QDoubleSpinBox()
+        self.main_div.setRange(0, 10)
+        self.main_div.setSingleStep(1)
+        self.main_div.setValue(3)
+        self.main_div.setDecimals(0)
+        self.main_div.setMinimum(3)
 
         # secondary divisions
-        self.secDivisions_label = QtWidgets.QLabel("Secondary Controls:")
-        self.secDivisions_value = QtWidgets.QDoubleSpinBox()
-        self.secDivisions_value.setRange(0, 10)
-        self.secDivisions_value.setSingleStep(1)
-        self.secDivisions_value.setValue(5)
-        self.secDivisions_value.setDecimals(0)
-        self.secDivisions_value.setMinimum(3)
+        self.sec_div_label = QtWidgets.QLabel("Secondary Controls:")
+        self.sec_div = QtWidgets.QDoubleSpinBox()
+        self.sec_div.setRange(0, 10)
+        self.sec_div.setSingleStep(1)
+        self.sec_div.setValue(5)
+        self.sec_div.setDecimals(0)
+        self.sec_div.setMinimum(3)
 
         # secondary controls ?
-        self.secondaryCheck = QtWidgets.QCheckBox('Secondary controls')
-        self.secondaryCheck.setChecked(True)
+        self.secondary_ctl_check = QtWidgets.QCheckBox('Secondary controls')
+        self.secondary_ctl_check.setChecked(True)
 
         # Parents
         self.joints_group = QtWidgets.QGroupBox("Parent / Joints")
         self.controls_group = QtWidgets.QGroupBox("Controls")
 
         # central/main parent
-        self.c_browJnt_label = QtWidgets.QLabel("Main/central brow joint:")
-        self.c_browJnt_lineEdit = QtWidgets.QLineEdit()
-        self.c_browJnt_button = QtWidgets.QPushButton("<<")
+        self.brow_jnt_C_label = QtWidgets.QLabel("Main/central brow joint:")
+        self.brow_jnt_C = QtWidgets.QLineEdit()
+        self.brow_jnt_C_button = QtWidgets.QPushButton("<<")
 
         # side joints
-        self.l_browJnt_label = QtWidgets.QLabel("Left brow joint:")
-        self.l_browJnt_lineEdit = QtWidgets.QLineEdit()
-        self.l_browJnt_button = QtWidgets.QPushButton("<<")
+        self.brow_jnt_L_label = QtWidgets.QLabel("Left brow joint:")
+        self.brow_jnt_L = QtWidgets.QLineEdit()
+        self.brow_jnt_L_button = QtWidgets.QPushButton("<<")
 
-        self.r_browJnt_label = QtWidgets.QLabel("Right brow joint:")
-        self.r_browJnt_lineEdit = QtWidgets.QLineEdit()
-        self.r_browJnt_button = QtWidgets.QPushButton("<<")
+        self.brow_jnt_R_label = QtWidgets.QLabel("Right brow joint:")
+        self.brow_jnt_R = QtWidgets.QLineEdit()
+        self.brow_jnt_R_button = QtWidgets.QPushButton("<<")
 
         # ctl parents
-        self.l_browCtl_label = QtWidgets.QLabel("Main / Left control:")
-        self.l_browCtl_lineEdit = QtWidgets.QLineEdit()
-        self.l_browCtl_button = QtWidgets.QPushButton("<<")
+        self.ctl_parent_L_label = QtWidgets.QLabel("Main / Left control:")
+        self.ctl_parent_L = QtWidgets.QLineEdit()
+        self.ctl_parent_L_button = QtWidgets.QPushButton("<<")
 
-        self.r_browCtl_label = QtWidgets.QLabel("Right control:")
-        self.r_browCtl_lineEdit = QtWidgets.QLineEdit()
-        self.r_browCtl_button = QtWidgets.QPushButton("<<")
+        self.ctl_parent_R_label = QtWidgets.QLabel("Right control:")
+        self.ctl_parent_R = QtWidgets.QLineEdit()
+        self.ctl_parent_R_button = QtWidgets.QPushButton("<<")
 
         # static parent
         self.parent_label = QtWidgets.QLabel("Static Rig Parent:")
-        self.parent_lineEdit = QtWidgets.QLineEdit()
+        self.parent_node = QtWidgets.QLineEdit()
         self.parent_button = QtWidgets.QPushButton("<<")
 
         # Build button
@@ -1205,29 +1202,29 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_layout(self):
 
         # Edge Loop Layout
-        edgeloop_layout = QtWidgets.QHBoxLayout()
-        edgeloop_layout.setContentsMargins(1, 1, 1, 1)
-        edgeloop_layout.addWidget(self.edgeloop_label)
-        edgeloop_layout.addWidget(self.edgeloop_lineEdit)
-        edgeloop_layout.addWidget(self.edgeloop_button)
+        edge_loop_layout = QtWidgets.QHBoxLayout()
+        edge_loop_layout.setContentsMargins(1, 1, 1, 1)
+        edge_loop_layout.addWidget(self.edge_loop_label)
+        edge_loop_layout.addWidget(self.edge_loop)
+        edge_loop_layout.addWidget(self.edge_loop_button)
 
         # Geometry Input Layout
         geometryInput_layout = QtWidgets.QVBoxLayout()
         geometryInput_layout.setContentsMargins(6, 1, 6, 2)
-        geometryInput_layout.addLayout(edgeloop_layout)
+        geometryInput_layout.addLayout(edge_loop_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
         # Symmetry mode Layout
         sym_layout = QtWidgets.QHBoxLayout()
         sym_layout.setContentsMargins(1, 1, 1, 1)
         sym_layout.addWidget(self.mode_label)
-        sym_layout.addWidget(self.mode_comboBox)
+        sym_layout.addWidget(self.symmetry_mode)
 
         # Side if single
         side_layout = QtWidgets.QHBoxLayout()
         side_layout.setContentsMargins(1, 1, 1, 1)
         side_layout.addWidget(self.side_label)
-        side_layout.addWidget(self.side_comboBox)
+        side_layout.addWidget(self.side)
 
         mode_layout = QtWidgets.QVBoxLayout()
         mode_layout.setContentsMargins(6, 4, 6, 4)
@@ -1237,100 +1234,100 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # parents Layout
         # joints
-        l_browJnt_layout = QtWidgets.QHBoxLayout()
-        l_browJnt_layout.addWidget(self.l_browJnt_label)
-        l_browJnt_layout.addWidget(self.l_browJnt_lineEdit)
-        l_browJnt_layout.addWidget(self.l_browJnt_button)
+        brow_jnt_L_layout = QtWidgets.QHBoxLayout()
+        brow_jnt_L_layout.addWidget(self.brow_jnt_L_label)
+        brow_jnt_L_layout.addWidget(self.brow_jnt_L)
+        brow_jnt_L_layout.addWidget(self.brow_jnt_L_button)
 
-        r_browJnt_layout = QtWidgets.QHBoxLayout()
-        r_browJnt_layout.addWidget(self.r_browJnt_label)
-        r_browJnt_layout.addWidget(self.r_browJnt_lineEdit)
-        r_browJnt_layout.addWidget(self.r_browJnt_button)
+        brow_jnt_R_layout = QtWidgets.QHBoxLayout()
+        brow_jnt_R_layout.addWidget(self.brow_jnt_R_label)
+        brow_jnt_R_layout.addWidget(self.brow_jnt_R)
+        brow_jnt_R_layout.addWidget(self.brow_jnt_R_button)
 
-        c_browJnt_layout = QtWidgets.QHBoxLayout()
-        c_browJnt_layout.addWidget(self.c_browJnt_label)
-        c_browJnt_layout.addWidget(self.c_browJnt_lineEdit)
-        c_browJnt_layout.addWidget(self.c_browJnt_button)
+        brow_jnt_C_layout = QtWidgets.QHBoxLayout()
+        brow_jnt_C_layout.addWidget(self.brow_jnt_C_label)
+        brow_jnt_C_layout.addWidget(self.brow_jnt_C)
+        brow_jnt_C_layout.addWidget(self.brow_jnt_C_button)
 
         # controls
-        l_browCtl_layout = QtWidgets.QHBoxLayout()
-        l_browCtl_layout.addWidget(self.l_browCtl_label)
-        l_browCtl_layout.addWidget(self.l_browCtl_lineEdit)
-        l_browCtl_layout.addWidget(self.l_browCtl_button)
+        ctl_parent_L_layout = QtWidgets.QHBoxLayout()
+        ctl_parent_L_layout.addWidget(self.ctl_parent_L_label)
+        ctl_parent_L_layout.addWidget(self.ctl_parent_L)
+        ctl_parent_L_layout.addWidget(self.ctl_parent_L_button)
 
-        r_browCtl_layout = QtWidgets.QHBoxLayout()
-        r_browCtl_layout.addWidget(self.r_browCtl_label)
-        r_browCtl_layout.addWidget(self.r_browCtl_lineEdit)
-        r_browCtl_layout.addWidget(self.r_browCtl_button)
+        ctl_parent_R_layout = QtWidgets.QHBoxLayout()
+        ctl_parent_R_layout.addWidget(self.ctl_parent_R_label)
+        ctl_parent_R_layout.addWidget(self.ctl_parent_R)
+        ctl_parent_R_layout.addWidget(self.ctl_parent_R_button)
 
         # static parent
         staticParent_layout = QtWidgets.QHBoxLayout()
         staticParent_layout.addWidget(self.parent_label)
-        staticParent_layout.addWidget(self.parent_lineEdit)
+        staticParent_layout.addWidget(self.parent_node)
         staticParent_layout.addWidget(self.parent_button)
 
         # joing layout
         parents_layout = QtWidgets.QVBoxLayout()
         parents_layout.setContentsMargins(6, 4, 6, 4)
         parents_layout.addLayout(staticParent_layout)
-        parents_layout.addLayout(l_browJnt_layout)
-        parents_layout.addLayout(r_browJnt_layout)
-        parents_layout.addLayout(c_browJnt_layout)
+        parents_layout.addLayout(brow_jnt_L_layout)
+        parents_layout.addLayout(brow_jnt_R_layout)
+        parents_layout.addLayout(brow_jnt_C_layout)
         self.joints_group.setLayout(parents_layout)
 
         controls_layout = QtWidgets.QVBoxLayout()
         controls_layout.setContentsMargins(6, 4, 6, 4)
-        controls_layout.addLayout(l_browCtl_layout)
-        controls_layout.addLayout(r_browCtl_layout)
+        controls_layout.addLayout(ctl_parent_L_layout)
+        controls_layout.addLayout(ctl_parent_R_layout)
         self.controls_group.setLayout(controls_layout)
 
         # Options Layout
-        browThickness_layout = QtWidgets.QHBoxLayout()
-        browThickness_layout.addWidget(self.browThickness_label)
-        browThickness_layout.addWidget(self.browThickness_value)
+        thickness_layout = QtWidgets.QHBoxLayout()
+        thickness_layout.addWidget(self.thickness_label)
+        thickness_layout.addWidget(self.thickness)
 
-        secondaryCheck_layout = QtWidgets.QVBoxLayout()
-        secondaryCheck_layout.setContentsMargins(6, 4, 6, 4)
-        secondaryCheck_layout.addWidget(self.secondaryCheck, alignment=0)
+        secondary_ctl_check_layout = QtWidgets.QVBoxLayout()
+        secondary_ctl_check_layout.setContentsMargins(6, 4, 6, 4)
+        secondary_ctl_check_layout.addWidget(self.secondary_ctl_check, alignment=0)
 
-        mainDivisions_layout = QtWidgets.QHBoxLayout()
-        mainDivisions_layout.addWidget(self.mainDivisions_label)
-        mainDivisions_layout.addWidget(self.mainDivisions_value)
+        main_div_layout = QtWidgets.QHBoxLayout()
+        main_div_layout.addWidget(self.main_div_label)
+        main_div_layout.addWidget(self.main_div)
 
-        secDivisions_layout = QtWidgets.QHBoxLayout()
-        secDivisions_layout.addWidget(self.secDivisions_label)
-        secDivisions_layout.addWidget(self.secDivisions_value)
+        sec_div_layout = QtWidgets.QHBoxLayout()
+        sec_div_layout.addWidget(self.sec_div_label)
+        sec_div_layout.addWidget(self.sec_div)
 
         options_layout = QtWidgets.QVBoxLayout()
         options_layout.setContentsMargins(6, 1, 6, 2)
-        options_layout.addLayout(secondaryCheck_layout)
-        options_layout.addLayout(browThickness_layout)
-        options_layout.addLayout(mainDivisions_layout)
-        options_layout.addLayout(secDivisions_layout)
+        options_layout.addLayout(secondary_ctl_check_layout)
+        options_layout.addLayout(thickness_layout)
+        options_layout.addLayout(main_div_layout)
+        options_layout.addLayout(sec_div_layout)
         self.options_group.setLayout(options_layout)
 
         # Name prefix
-        namePrefix_layout = QtWidgets.QHBoxLayout()
-        namePrefix_layout.setContentsMargins(1, 1, 1, 1)
-        namePrefix_layout.addWidget(self.prefix_lineEdit)
-        self.prefix_group.setLayout(namePrefix_layout)
+        name_prefix_layout = QtWidgets.QHBoxLayout()
+        name_prefix_layout.setContentsMargins(1, 1, 1, 1)
+        name_prefix_layout.addWidget(self.name_prefix)
+        self.prefix_group.setLayout(name_prefix_layout)
 
         # Control Name Extension
         controlExtension_layout = QtWidgets.QHBoxLayout()
         controlExtension_layout.setContentsMargins(1, 1, 1, 1)
-        controlExtension_layout.addWidget(self.control_lineEdit)
+        controlExtension_layout.addWidget(self.ctl_name)
         self.control_group.setLayout(controlExtension_layout)
 
         # topological autoskin Layout
         skinLoops_layout = QtWidgets.QGridLayout()
-        skinLoops_layout.addWidget(self.rigidLoops_label, 0, 0)
-        skinLoops_layout.addWidget(self.falloffLoops_label, 0, 1)
-        skinLoops_layout.addWidget(self.rigidLoops_value, 1, 0)
-        skinLoops_layout.addWidget(self.falloffLoops_value, 1, 1)
+        skinLoops_layout.addWidget(self.rigid_loops_label, 0, 0)
+        skinLoops_layout.addWidget(self.falloff_loops_label, 0, 1)
+        skinLoops_layout.addWidget(self.rigid_loops, 1, 0)
+        skinLoops_layout.addWidget(self.falloff_loops, 1, 1)
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.topSkin_check, alignment=0)
+        topoSkin_layout.addWidget(self.do_skin, alignment=0)
         topoSkin_layout.addLayout(skinLoops_layout)
         topoSkin_layout.addLayout(parents_layout)
         self.topoSkin_group.setLayout(topoSkin_layout)
@@ -1353,32 +1350,32 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setLayout(main_layout)
 
     def create_connections(self):
-        self.mode_comboBox.currentTextChanged.connect(self.setSymmetryLayout)
-        self.secondaryCheck.stateChanged.connect(self.setSecondaryControls)
+        self.symmetry_mode.currentTextChanged.connect(self.setSymmetryLayout)
+        self.secondary_ctl_check.stateChanged.connect(self.setSecondaryControls)
 
-        self.edgeloop_button.clicked.connect(partial(self.populate_edgeloop,
-                                                     self.edgeloop_lineEdit))
+        self.edge_loop_button.clicked.connect(partial(self.populate_edge_loop,
+                                                     self.edge_loop))
 
         self.parent_button.clicked.connect(partial(self.populate_element,
-                                                   self.parent_lineEdit))
+                                                   self.parent_node))
 
-        self.l_browJnt_button.clicked.connect(partial(self.populate_element,
-                                                      self.l_browJnt_lineEdit,
+        self.brow_jnt_L_button.clicked.connect(partial(self.populate_element,
+                                                      self.brow_jnt_L,
                                                       "joint"))
 
-        self.r_browJnt_button.clicked.connect(partial(self.populate_element,
-                                                      self.r_browJnt_lineEdit,
+        self.brow_jnt_R_button.clicked.connect(partial(self.populate_element,
+                                                      self.brow_jnt_R,
                                                       "joint"))
 
-        self.c_browJnt_button.clicked.connect(partial(self.populate_element,
-                                                      self.c_browJnt_lineEdit,
+        self.brow_jnt_C_button.clicked.connect(partial(self.populate_element,
+                                                      self.brow_jnt_C,
                                                       "joint"))
 
-        self.l_browCtl_button.clicked.connect(partial(self.populate_element,
-                                                      self.l_browCtl_lineEdit))
+        self.ctl_parent_L_button.clicked.connect(partial(self.populate_element,
+                                                      self.ctl_parent_L))
 
-        self.r_browCtl_button.clicked.connect(partial(self.populate_element,
-                                                      self.r_browCtl_lineEdit))
+        self.ctl_parent_R_button.clicked.connect(partial(self.populate_element,
+                                                      self.ctl_parent_R))
 
         self.build_button.clicked.connect(self.build_rig)
         self.import_button.clicked.connect(self.import_settings)
@@ -1386,43 +1383,43 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def setSymmetryLayout(self, value):
         if value == "Off":
-            self.side_comboBox.setHidden(False)
+            self.side.setHidden(False)
             self.side_label.setHidden(False)
 
-            self.l_browJnt_label.setHidden(True)
-            self.l_browJnt_lineEdit.setHidden(True)
-            self.l_browJnt_button.setHidden(True)
+            self.brow_jnt_L_label.setHidden(True)
+            self.brow_jnt_L.setHidden(True)
+            self.brow_jnt_L_button.setHidden(True)
 
-            self.r_browJnt_label.setHidden(True)
-            self.r_browJnt_lineEdit.setHidden(True)
-            self.r_browJnt_button.setHidden(True)
+            self.brow_jnt_R_label.setHidden(True)
+            self.brow_jnt_R.setHidden(True)
+            self.brow_jnt_R_button.setHidden(True)
 
-            self.r_browCtl_label.setHidden(True)
-            self.r_browCtl_lineEdit.setHidden(True)
-            self.r_browCtl_button.setHidden(True)
+            self.ctl_parent_R_label.setHidden(True)
+            self.ctl_parent_R.setHidden(True)
+            self.ctl_parent_R_button.setHidden(True)
         else:
-            self.side_comboBox.setHidden(True)
+            self.side.setHidden(True)
             self.side_label.setHidden(True)
 
-            self.l_browJnt_label.setHidden(False)
-            self.l_browJnt_lineEdit.setHidden(False)
-            self.l_browJnt_button.setHidden(False)
+            self.brow_jnt_L_label.setHidden(False)
+            self.brow_jnt_L.setHidden(False)
+            self.brow_jnt_L_button.setHidden(False)
 
-            self.r_browJnt_label.setHidden(False)
-            self.r_browJnt_lineEdit.setHidden(False)
-            self.r_browJnt_button.setHidden(False)
+            self.brow_jnt_R_label.setHidden(False)
+            self.brow_jnt_R.setHidden(False)
+            self.brow_jnt_R_button.setHidden(False)
 
-            self.r_browCtl_label.setHidden(False)
-            self.r_browCtl_lineEdit.setHidden(False)
-            self.r_browCtl_button.setHidden(False)
+            self.ctl_parent_R_label.setHidden(False)
+            self.ctl_parent_R.setHidden(False)
+            self.ctl_parent_R_button.setHidden(False)
 
     def setSecondaryControls(self, value):
         if value == 0:
-            self.secDivisions_label.setHidden(True)
-            self.secDivisions_value.setHidden(True)
+            self.sec_div_label.setHidden(True)
+            self.sec_div.setHidden(True)
         else:
-            self.secDivisions_label.setHidden(False)
-            self.secDivisions_value.setHidden(False)
+            self.sec_div_label.setHidden(False)
+            self.sec_div.setHidden(False)
     #SLOTS ##########################################################
 
     def populate_element(self, lEdit, oType="transform"):
@@ -1443,7 +1440,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             pm.displayWarning("Please select first one %s." % oType)
 
-    def populate_edgeloop(self, lineEdit):
+    def populate_edge_loop(self, lineEdit):
         lineEdit.setText(lib.get_edge_loop_from_selection())
 
     def build_rig(self):

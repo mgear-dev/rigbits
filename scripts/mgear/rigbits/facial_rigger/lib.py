@@ -14,6 +14,8 @@ def widget_get(widget):
         return widget.text()
     if isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
+    if isinstance(widget, QtWidgets.QComboBox):
+        return widget.currentIndex()
 
     return None
 
@@ -30,6 +32,9 @@ def widget_set(widget, value):
         return
     if isinstance(widget, QtWidgets.QCheckBox):
         widget.setChecked(value)
+        return
+    if isinstance(widget, QtWidgets.QComboBox):
+        widget.setCurrentIndex(value)
         return
 
     raise ValueError("Widget {0} was not recognized.".format(widget))
