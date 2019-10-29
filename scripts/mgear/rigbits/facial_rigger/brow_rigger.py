@@ -116,7 +116,6 @@ def rig(edge_loop,
         else:
             r_inner = r_Loop[-1]
 
-
         # center segment
         c_Loop = [pm.PyNode(e) for e in pm.polySelect(
                   geoTransform,
@@ -351,7 +350,7 @@ def rig(edge_loop,
                 mainCtrlPos = helpers.divideSegment(mainCurve, midDivisions)
             else:
                 mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
-            if secondary_ctl_check is True and side is not "C":
+            if secondary_ctl_check and side is not "C":
                 # get secondary controls position
                 secCtrlPos = helpers.divideSegment(mainCurve, sec_div)
 
@@ -359,7 +358,7 @@ def rig(edge_loop,
             print mainCurve
             print main_div
             mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
-            if secondary_ctl_check is True:
+            if secondary_ctl_check:
                 # get secondary controls position
 
                 secCtrlPos = helpers.divideSegment(mainCurve, sec_div)
@@ -400,11 +399,11 @@ def rig(edge_loop,
                 if side is "L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
-                    tControlSize = [0.85, 1.0]
+                    tControlSize = [0.8, 1.0]
                 if side is "R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
-                    tControlSize = [1.0, 0.85]
+                    tControlSize = [1.0, 0.8]
 
                 options = [tPrefix[1],
                            side,
@@ -424,21 +423,24 @@ def rig(edge_loop,
                            ctlPos]
                 mainCtrlOptions.append(options)
 
-            elif "out_" in posPrefix and symmetry_mode == 1:
-                if posPrefix is "out_L":
+            # elif "out_" in posPrefix and symmetry_mode == 1:
+            elif posPrefix is "out" or "out_" in posPrefix:
+                # if posPrefix is "out_L":
+                if side is "L" or posPrefix is "out_L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
-                    tControlSize = [0.85, 1.0]
-                if posPrefix is "out_R":
+                    tControlSize = [0.8, 1.0]
+                # if posPrefix is "out_R":
+                if side is "R" or posPrefix is "out_R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
-                    tControlSize = [1.0, 0.85]
+                    tControlSize = [1.0, 0.8]
 
                 options = [tPrefix[0],
                            side,
                            tControlType[0],
                            6,
-                           tControlSize[1],
+                           tControlSize[0],
                            [],
                            ctlPos]
                 mainCtrlOptions.append(options)
@@ -446,7 +448,7 @@ def rig(edge_loop,
                            side,
                            tControlType[1],
                            6,
-                           tControlSize[0],
+                           tControlSize[1],
                            [],
                            ctlPos]
                 mainCtrlOptions.append(options)
@@ -462,7 +464,7 @@ def rig(edge_loop,
                 mainCtrlOptions.append(options)
 
         # secondary control options
-        if secondary_ctl_check is True:
+        if secondary_ctl_check:
             if symmetry_mode == 0:  # 0 means ON
                 secSideRange = "LR"
             else:
@@ -485,7 +487,7 @@ def rig(edge_loop,
         # TODO: this is a constant?
         distSize = 1
 
-        if secondary_ctl_check is True:
+        if secondary_ctl_check:
             controlOptionList = [mainCtrlOptions, secCtrlOptions]
         else:
             controlOptionList = [mainCtrlOptions]
@@ -540,6 +542,11 @@ def rig(edge_loop,
                     position)
                 # Create casual control
                 if o_icon is not "npo":
+                    if o_icon == "sphere":
+                        rot_offset = None
+                    else:
+                        rot_offset = datatypes.Vector(1.57079633, 0, 0)
+
                     ctl = icon.create(
                         npoBuffer,
                         setName("%s_%s" % (oName, ctl_name), oSide),
@@ -547,7 +554,7 @@ def rig(edge_loop,
                         icon=o_icon,
                         w=wd * self_size,
                         d=wd * self_size,
-                        ro=datatypes.Vector(1.57079633, 0, 0),
+                        ro=rot_offset,
                         po=datatypes.Vector(0, 0, .07 * distSize),
                         color=color)
                 # Create buffer node instead
@@ -597,24 +604,25 @@ def rig(edge_loop,
             #####################
             # Curves creation
             #####################
+            crv_degree = 2
 
             if controlStatus == 0:  # main controls
                 mainCtlCurve = helpers.addCnsCurve(
                     browsCrv_root,
                     setName("mainCtl_crv", side),
                     localCtlList,
-                    3)
+                    crv_degree)
                 rigCurves.append(mainCtlCurve[0])
                 mainCtlCurves.append(mainCtlCurve[0])
 
                 # create upvector curve to drive secondary control
-                if secondary_ctl_check is True:
+                if secondary_ctl_check:
                     if side in secSideRange:
                         mainCtlUpv = helpers.addCurve(
                             browsCrv_root,
                             setName("mainCtl_upv", side),
                             localCtlList,
-                            3)
+                            crv_degree)
                         # connect upv curve to mainCrv_ctl driver node.
                         pm.connectAttr(
                             mainCtlCurve[1].attr("outputGeometry[0]"),
@@ -636,7 +644,7 @@ def rig(edge_loop,
                         browsCrv_root,
                         setName("secCtl_crv", side),
                         localSecCtlList,
-                        3)
+                        crv_degree)
                     secondaryCurves.append(secondaryCtlCurve[0])
                     rigCurves.append(secondaryCtlCurve[0])
 
@@ -765,7 +773,7 @@ def rig(edge_loop,
                                              ctl.getParent(2),
                                              'srt',
                                              True)
-            if ctl_side is "R" and "_tangent" not in ctl:
+            if ctl_side is "R" and "_tangent" not in ctl.name():
                 constraints.matrixConstraint(ctl_parent_R,
                                              ctl.getParent(2),
                                              'srt',
@@ -780,9 +788,11 @@ def rig(edge_loop,
         if ctl_side is "C":
             pm.parent(t_outR.getParent(2), c_outR)
             pm.parent(t_outL.getParent(2), c_outL)
-
+        print mainControls
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
+                print "here is the L loop"
+                print ctl
                 print ctl_parent_L
                 constraints.matrixConstraint(ctl_parent_L,
                                              ctl.getParent(2),
@@ -790,7 +800,7 @@ def rig(edge_loop,
                                              True)
 
     # Attach secondary controls to main curve
-    if secondary_ctl_check is True:
+    if secondary_ctl_check:
         secControlsMerged = []
         if symmetry_mode == 0:  # 0 means ON
             tempMainCtlCurves = [crv for crv in mainCtlCurves
