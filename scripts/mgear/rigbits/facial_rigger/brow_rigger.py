@@ -12,7 +12,7 @@ from pymel.core import datatypes
 
 from mgear import rigbits
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
-from mgear.core import transform, attribute, skin, pickWalk
+from mgear.core import transform, attribute, skin, pickWalk, vector
 
 from mgear.rigbits.facial_rigger import lib
 from mgear.rigbits.facial_rigger import helpers
@@ -102,19 +102,20 @@ def rig(edge_loop,
             r_Loop = edge_loop
 
         # get edges for center module
-        p1 = l_Loop[0].getPoint(0, space='world')[0]
-        p2 = l_Loop[-1].getPoint(0, space='world')[0]
-        if p1 < p2:
+        p1 = l_Loop[0].getPoint(0, space='world')
+        p2 = l_Loop[-1].getPoint(0, space='world')
+        if p1[0] < p2[0]:
             l_inner = l_Loop[0]
         else:
             l_inner = l_Loop[-1]
-        p1 = r_Loop[0].getPoint(0, space='world')[0]
-        p2 = r_Loop[-1].getPoint(0, space='world')[0]
+        p1 = r_Loop[0].getPoint(0, space='world')
+        p2 = r_Loop[-1].getPoint(0, space='world')
 
-        if p1 > p2:
+        if p1[0] > p2[0]:
             r_inner = r_Loop[0]
         else:
             r_inner = r_Loop[-1]
+
 
         # center segment
         c_Loop = [pm.PyNode(e) for e in pm.polySelect(
@@ -138,6 +139,10 @@ def rig(edge_loop,
         # set
         c_Loop = edge_loop
         edge_loops = dict(zip([side], [c_Loop]))
+        p1 = c_Loop[0].getPoint(0, space='world')
+        p2 = c_Loop[-1].getPoint(0, space='world')
+
+    self_size = vector.getDistance(p1, p2) / sec_div
 
     # parent node
     if parent_node:
@@ -147,7 +152,6 @@ def rig(edge_loop,
             pm.displayWarning(
                 "Static rig parent: %s can not be found" % parent_node)
             return
-
 
     if brow_jnt_C:
         try:
@@ -317,23 +321,27 @@ def rig(edge_loop,
         mainCurve = curve.createCuveFromEdges(loop,
                                               setName("main_crv", side),
                                               parent=browsCrv_root)
+        print "mainCurve ="
+        print mainCurve
         # collect main poly based curve
         mainCurves.append(mainCurve)
         rigCurves.append(mainCurve)
 
         # offset main brow curve
+        # NOTE Miquel: we dont need to offset here. The offset was for the lips
+        # because have thickness. Here  is not needed
         cvs = mainCurve.getCVs(space='world')
         for i, cv in enumerate(cvs):
             closestVtx = meshNavigation.getClosestVertexFromTransform(geo, cv)
             closestVtxsList.append(closestVtx)
-            if i == 0:
-                # we know the curv starts from right to left
-                offset = [cv[0] - thickness, cv[1], cv[2] - thickness]
-            elif i == len(cvs) - 1:
-                offset = [cv[0] + thickness, cv[1], cv[2] - thickness]
-            else:
-                offset = [cv[0], cv[1] + thickness, cv[2]]
-            mainCurve.setCV(i, offset, space='world')
+            # if i == 0:
+            #     # we know the curv starts from right to left
+            #     offset = [cv[0] - thickness, cv[1], cv[2] - thickness]
+            # elif i == len(cvs) - 1:
+            #     offset = [cv[0] + thickness, cv[1], cv[2] - thickness]
+            # else:
+            #     offset = [cv[0], cv[1] + thickness, cv[2]]
+            # mainCurve.setCV(i, offset, space='world')
 
         # ###################
         # Get control positions
@@ -474,6 +482,7 @@ def rig(edge_loop,
                     secCtrlOptions.append(options)
 
         params = ["tx", "ty", "tz"]
+        # TODO: this is a constant?
         distSize = 1
 
         if secondary_ctl_check is True:
@@ -536,8 +545,8 @@ def rig(edge_loop,
                         setName("%s_%s" % (oName, ctl_name), oSide),
                         position,
                         icon=o_icon,
-                        w=wd,
-                        d=wd,
+                        w=wd * self_size,
+                        d=wd * self_size,
                         ro=datatypes.Vector(1.57079633, 0, 0),
                         po=datatypes.Vector(0, 0, .07 * distSize),
                         color=color)
@@ -632,6 +641,7 @@ def rig(edge_loop,
                     rigCurves.append(secondaryCtlCurve[0])
 
         # create upvector / rope curves
+        print "curves from curve "
         mainRope = curve.createCurveFromCurve(
             mainCurve,
             setName("mainRope", side),
@@ -658,6 +668,9 @@ def rig(edge_loop,
 
         rigCurves.append(mainCrv_upv)
         mainCurveUpvs.append(mainCrv_upv)
+        print "++++"
+        print mainCurve
+        print "++++"
 
     # offset upv curves
         for crv in [mainRope_upv, mainCrv_upv]:
@@ -770,6 +783,7 @@ def rig(edge_loop,
 
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
+                print ctl_parent_L
                 constraints.matrixConstraint(ctl_parent_L,
                                              ctl.getParent(2),
                                              'srt',
@@ -846,8 +860,11 @@ def rig(edge_loop,
                                 cnsType=False,
                                 u=u,
                                 tangent=False)
-                cns = applyop.pathCns(
-                    oTrans, tempMainCtlCurves[j], cnsType=False, u=u, tangent=False)
+                cns = applyop.pathCns(oTrans,
+                                      tempMainCtlCurves[j],
+                                      cnsType=False,
+                                      u=u,
+                                      tangent=False)
 
                 cns.setAttr("worldUpType", 1)
                 cns.setAttr("frontAxis", 0)
@@ -857,10 +874,11 @@ def rig(edge_loop,
                                cns.attr("worldUpMatrix"))
 
                 # connect secondary control to oTrans hook.
-                constraints.matrixConstraint(oTrans,
-                                             secControlsMerged[j][i].getParent(2),
-                                             't',
-                                             True)
+                constraints.matrixConstraint(
+                    oTrans,
+                    secControlsMerged[j][i].getParent(2),
+                    't',
+                    True)
 
     ##################
     # Wires and connections
@@ -873,9 +891,10 @@ def rig(edge_loop,
             crv = [crv for crv in mainCtlCurves if getSide(crv) is "C"]
             crvDrivers.append(crv[0])
 
-            crv = [crv for crv in secondaryCurves]
-            for c in crv:
-                crvDrivers.append(c)
+            # crv = [crv for crv in secondaryCurves]
+            # for c in crv:
+            #     crvDrivers.append(c)
+            crvDrivers = crvDrivers + secondaryCurves
         else:
             crvDrivers = secondaryCurves
 
@@ -883,6 +902,12 @@ def rig(edge_loop,
         crvDrivers = mainCtlCurves
 
     for i, drv in enumerate(crvDrivers):
+        print "=========="
+        print drv
+        print mainCurves[i]
+        print mainCurveUpvs[i]
+        print mainRopes[i]
+        print mainRopeUpvs[i]
         pm.wire(mainCurves[i], w=drv, dropoffDistance=[0, 1000])
         pm.wire(mainCurveUpvs[i], w=drv, dropoffDistance=[0, 1000])
         pm.wire(mainRopes[i], w=drv, dropoffDistance=[0, 1000])
@@ -1288,7 +1313,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         secondary_ctl_check_layout = QtWidgets.QVBoxLayout()
         secondary_ctl_check_layout.setContentsMargins(6, 4, 6, 4)
-        secondary_ctl_check_layout.addWidget(self.secondary_ctl_check, alignment=0)
+        secondary_ctl_check_layout.addWidget(
+            self.secondary_ctl_check, alignment=0)
 
         main_div_layout = QtWidgets.QHBoxLayout()
         main_div_layout.addWidget(self.main_div_label)
@@ -1360,22 +1386,22 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                                    self.parent_node))
 
         self.brow_jnt_L_button.clicked.connect(partial(self.populate_element,
-                                                      self.brow_jnt_L,
-                                                      "joint"))
+                                                       self.brow_jnt_L,
+                                                       "joint"))
 
         self.brow_jnt_R_button.clicked.connect(partial(self.populate_element,
-                                                      self.brow_jnt_R,
-                                                      "joint"))
+                                                       self.brow_jnt_R,
+                                                       "joint"))
 
         self.brow_jnt_C_button.clicked.connect(partial(self.populate_element,
-                                                      self.brow_jnt_C,
-                                                      "joint"))
+                                                       self.brow_jnt_C,
+                                                       "joint"))
 
         self.ctl_parent_L_button.clicked.connect(partial(self.populate_element,
-                                                      self.ctl_parent_L))
+                                                         self.ctl_parent_L))
 
         self.ctl_parent_R_button.clicked.connect(partial(self.populate_element,
-                                                      self.ctl_parent_R))
+                                                         self.ctl_parent_R))
 
         self.build_button.clicked.connect(self.build_rig)
         self.import_button.clicked.connect(self.import_settings)
