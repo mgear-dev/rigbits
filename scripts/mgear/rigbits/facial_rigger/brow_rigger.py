@@ -424,14 +424,17 @@ def rig(edge_loop,
                 mainCtrlOptions.append(options)
 
             # elif "out_" in posPrefix and symmetry_mode == 1:
-            elif posPrefix is "out" or "out_" in posPrefix:
+            # elif posPrefix is "out" or "out_" in posPrefix:
+            elif posPrefix is "out":
                 # if posPrefix is "out_L":
-                if side is "L" or posPrefix is "out_L":
+                # if side is "L" or posPrefix is "out_L":
+                if side is "L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
                     tControlSize = [0.8, 1.0]
                 # if posPrefix is "out_R":
-                if side is "R" or posPrefix is "out_R":
+                # if side is "R" or posPrefix is "out_R":
+                if side is "R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
                     tControlSize = [1.0, 0.8]
@@ -473,7 +476,13 @@ def rig(edge_loop,
             if side in secSideRange:
                 controlType = "circle"
                 for i, ctlPos in enumerate(secCtrlPos):
-                    posPrefix = "sec_0" + str(i)
+                    # invert the index naming only.
+                    # if the full list is inver we generate another issues
+                    if side is "R":
+                        i_name = len(secCtrlPos) - i
+                    else:
+                        i_name = i
+                    posPrefix = "sec_" + str(i_name).zfill(2)
                     options = [posPrefix,
                                side,
                                controlType,
@@ -483,11 +492,18 @@ def rig(edge_loop,
                                ctlPos]
                     secCtrlOptions.append(options)
 
+            # if side is "R":
+            #     print  "--reversed list-"
+            #     # secCtrlOptions = list(reversed(secCtrlOptions))
+            #     secCtrlOptions = secCtrlOptions.reverse()
+
         params = ["tx", "ty", "tz"]
         # TODO: this is a constant?
         distSize = 1
 
         if secondary_ctl_check:
+            print "secCtrlOptions--------"
+            print secCtrlOptions
             controlOptionList = [mainCtrlOptions, secCtrlOptions]
         else:
             controlOptionList = [mainCtrlOptions]
@@ -791,9 +807,6 @@ def rig(edge_loop,
         print mainControls
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
-                print "here is the L loop"
-                print ctl
-                print ctl_parent_L
                 constraints.matrixConstraint(ctl_parent_L,
                                              ctl.getParent(2),
                                              'srt',
