@@ -492,18 +492,11 @@ def rig(edge_loop,
                                ctlPos]
                     secCtrlOptions.append(options)
 
-            # if side is "R":
-            #     print  "--reversed list-"
-            #     # secCtrlOptions = list(reversed(secCtrlOptions))
-            #     secCtrlOptions = secCtrlOptions.reverse()
-
         params = ["tx", "ty", "tz"]
         # TODO: this is a constant?
         distSize = 1
 
         if secondary_ctl_check:
-            print "secCtrlOptions--------"
-            print secCtrlOptions
             controlOptionList = [mainCtrlOptions, secCtrlOptions]
         else:
             controlOptionList = [mainCtrlOptions]
