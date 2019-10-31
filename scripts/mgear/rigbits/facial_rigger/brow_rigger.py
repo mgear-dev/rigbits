@@ -506,6 +506,7 @@ def rig(edge_loop,
         #####################
         localCtlList = []
         localSecCtlList = []
+        # TODO: why is using test name for parent controls?
         for j, ctlOptions in enumerate(controlOptionList):
             # set status for main controllers
             if j is 0:
@@ -540,7 +541,8 @@ def rig(edge_loop,
                 point = ctlOptions[i][6]
 
                 position = transform.getTransformFromPos(point)
-
+                print "Parent ------ for: " + oName
+                print controlParentGrp
                 npo = primitive.addTransform(controlParentGrp,
                                              setName("%s_npo" % oName, oSide),
                                              position)
@@ -715,6 +717,7 @@ def rig(edge_loop,
                               "this object doesn't exist." % parent_node)
 
     # Reparent controls
+    # TODO: this can be more simple an easy to read
 
     for ctl in mainControls:
         ctl_side = getSide(ctl)
@@ -724,12 +727,20 @@ def rig(edge_loop,
                 l_child = ctl
             if "in_ctl" in ctl.name():
                 l_parent = ctl
+            if "out_tangent" in ctl.name():
+                t_outL = ctl
+            if "out_ctl" in ctl.name():
+                c_outL = ctl
 
         if ctl_side is "R":
             if "in_tangent_ctl" in ctl.name():
                 r_child = ctl
             if "in_ctl" in ctl.name():
                 r_parent = ctl
+            if "out_tangent" in ctl.name():
+                t_outR = ctl
+            if "out_ctl" in ctl.name():
+                c_outR = ctl
 
         if symmetry_mode == 0:  # 0 means ON
             if ctl_side is "C":
@@ -774,6 +785,8 @@ def rig(edge_loop,
                                      c_mid.getParent(2),
                                      'rs',
                                      True)
+        # TODO: we don't need matrix constrains in Main controls. This should
+        # be replace by simple parenting to the eyebrow main control
         for ctl in mainControls:
             ctl_side = getSide(ctl)
 
@@ -792,8 +805,10 @@ def rig(edge_loop,
 
         if ctl_side is "L":
             pm.parent(l_child.getParent(2), l_parent)
+            pm.parent(t_outL.getParent(2), c_outL)
         if ctl_side is "R":
             pm.parent(r_child.getParent(2), r_parent)
+            pm.parent(t_outR.getParent(2), c_outR)
         if ctl_side is "C":
             pm.parent(t_outR.getParent(2), c_outR)
             pm.parent(t_outL.getParent(2), c_outL)
@@ -1396,7 +1411,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.secondary_ctl_check.stateChanged.connect(self.setSecondaryControls)
 
         self.edge_loop_button.clicked.connect(partial(self.populate_edge_loop,
-                                                     self.edge_loop))
+                                                      self.edge_loop))
 
         self.parent_button.clicked.connect(partial(self.populate_element,
                                                    self.parent_node))
