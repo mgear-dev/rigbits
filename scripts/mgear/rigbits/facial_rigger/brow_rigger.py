@@ -138,9 +138,9 @@ def rig(edge_loop,
         # set
         c_Loop = edge_loop
         edge_loops = dict(zip([side], [c_Loop]))
-        p1 = c_Loop[0].getPoint(0, space='world')
-        p2 = c_Loop[-1].getPoint(0, space='world')
-
+    positions = meshNavigation.getExtremeVertexFromLoop(edge_loop)
+    p1 = positions[2].getPosition(space='world')
+    p2 = positions[3].getPosition(space='world')
     self_size = vector.getDistance(p1, p2) / sec_div
 
     # parent node
