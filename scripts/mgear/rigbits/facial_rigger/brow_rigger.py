@@ -197,29 +197,6 @@ def rig(edge_loop,
                     "%s can not be found. Please set it manually." % brow_jnt_R)
                 return
 
-    # parent controls
-    if ctl_parent_L:
-        try:
-            ctl_parent_L = pm.PyNode(ctl_parent_L)
-            controls_collect.append(ctl_parent_L)
-        except pm.MayaNodeError:
-            pm.displayWarning(
-                "Right (Left) ctl: %s can not be found" % ctl_parent_L)
-            return
-    else:
-        ctl_parent_L = brow_jnt_L
-
-    if symmetry_mode == 0:
-        if ctl_parent_R:
-            try:
-                ctl_parent_R = pm.PyNode(ctl_parent_R)
-                controls_collect.append(ctl_parent_R)
-            except pm.MayaNodeError:
-                pm.displayWarning(
-                    "Right ctl: %s can not be found" % ctl_parent_R)
-                return
-        else:
-            ctl_parent_R = brow_jnt_R
 
     ##################
     # Helper functions
@@ -266,6 +243,33 @@ def rig(edge_loop,
                                             setName("rope", rootSide))
     browsControl_root = primitive.addTransform(brows_root,
                                                setName("controls", rootSide))
+
+
+    # parent controls
+    if ctl_parent_L:
+        try:
+            ctl_parent_L = pm.PyNode(ctl_parent_L)
+            controls_collect.append(ctl_parent_L)
+        except pm.MayaNodeError:
+            pm.displayWarning(
+                "Right (Left) ctl: %s can not be found" % ctl_parent_L)
+            return
+    else:
+        # ctl_parent_L = brow_jnt_L
+        ctl_parent_L = brows_root
+
+    if symmetry_mode == 0:
+        if ctl_parent_R:
+            try:
+                ctl_parent_R = pm.PyNode(ctl_parent_R)
+                controls_collect.append(ctl_parent_R)
+            except pm.MayaNodeError:
+                pm.displayWarning(
+                    "Right ctl: %s can not be found" % ctl_parent_R)
+                return
+        else:
+            # ctl_parent_R = brow_jnt_R
+            ctl_parent_R = brows_root
 
     #####################
     # Groups
@@ -474,7 +478,7 @@ def rig(edge_loop,
                 secSideRange = "CLR"
 
             if side in secSideRange:
-                sec_number_index = len(secCtrlPos) -1
+                sec_number_index = len(secCtrlPos) - 1
                 controlType = "circle"
                 for i, ctlPos in enumerate(secCtrlPos):
                     # invert the index naming only.
@@ -793,15 +797,17 @@ def rig(edge_loop,
             ctl_side = getSide(ctl)
 
             if ctl_side is "L" and "_tangent" not in ctl.name():
-                constraints.matrixConstraint(ctl_parent_L,
-                                             ctl.getParent(2),
-                                             'srt',
-                                             True)
+                pm.parent(ctl.getParent(2), ctl_parent_L)
+                # constraints.matrixConstraint(ctl_parent_L,
+                #                              ctl.getParent(2),
+                #                              'srt',
+                #                              True)
             if ctl_side is "R" and "_tangent" not in ctl.name():
-                constraints.matrixConstraint(ctl_parent_R,
-                                             ctl.getParent(2),
-                                             'srt',
-                                             True)
+                pm.parent(ctl.getParent(2), ctl_parent_R)
+                # constraints.matrixConstraint(ctl_parent_R,
+                #                              ctl.getParent(2),
+                #                              'srt',
+                #                              True)
     else:
         ctl_side = getSide(mainControls[0])
 
@@ -817,10 +823,11 @@ def rig(edge_loop,
         print mainControls
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
-                constraints.matrixConstraint(ctl_parent_L,
-                                             ctl.getParent(2),
-                                             'srt',
-                                             True)
+                pm.parent(ctl.getParent(2), ctl_parent_L)
+                # constraints.matrixConstraint(ctl_parent_L,
+                #                              ctl.getParent(2),
+                #                              'srt',
+                #                              True)
 
     # Attach secondary controls to main curve
     if secondary_ctl_check:
