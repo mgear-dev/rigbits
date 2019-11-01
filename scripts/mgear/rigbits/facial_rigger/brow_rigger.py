@@ -474,12 +474,14 @@ def rig(edge_loop,
                 secSideRange = "CLR"
 
             if side in secSideRange:
+                sec_number_index = len(secCtrlPos) -1
                 controlType = "circle"
                 for i, ctlPos in enumerate(secCtrlPos):
                     # invert the index naming only.
                     # if the full list is inver we generate another issues
                     if side is "R":
-                        i_name = len(secCtrlPos) - i
+                        i_name = sec_number_index - i
+                        print i_name
                     else:
                         i_name = i
                     posPrefix = "sec_" + str(i_name).zfill(2)
@@ -1107,7 +1109,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(ui, self).__init__(parent)
 
-        self.filter = "Brows Rigger Configuration .lips (*.brows)"
+        self.filter = "Brows Rigger Configuration .brows (*.brows)"
 
         self.create()
 
