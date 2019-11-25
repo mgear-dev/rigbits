@@ -117,12 +117,18 @@ def rig(edge_loop,
             r_inner = r_Loop[-1]
 
         # center segment
-        c_Loop = [pm.PyNode(e) for e in pm.polySelect(
-                  geoTransform,
-                  edgeLoopPath=(l_inner.indices()[0],
-                                r_inner.indices()[0]),
-                  ass=True,
-                  ns=True)
+        mid_loop = pm.polySelect(
+            geoTransform,
+            edgeLoopPath=(l_inner.indices()[0],
+                          r_inner.indices()[0]),
+            ass=True,
+            ns=True)
+        if not mid_loop:
+            pm.displayError(
+                "Mid loop can't be traced. Provably the topology"
+                " have a vertex with 5 edges or more in the loop")
+            return
+        c_Loop = [pm.PyNode(e) for e in mid_loop
                   if pm.PyNode(e) not in l_Loop and pm.PyNode(e) not in r_Loop]
         edge_loops = dict(zip(["L", "R", "C"], [l_Loop, r_Loop, c_Loop]))
 
@@ -194,9 +200,8 @@ def rig(edge_loop,
             except pm.MayaNodeError:
                 pm.displayWarning(
                     "Right parent joint: "
-                    "%s can not be found. Please set it manually." % brow_jnt_R)
+                    "%s can't be found. Please set it manually." % brow_jnt_R)
                 return
-
 
     ##################
     # Helper functions
@@ -243,7 +248,6 @@ def rig(edge_loop,
                                             setName("rope", rootSide))
     browsControl_root = primitive.addTransform(brows_root,
                                                setName("controls", rootSide))
-
 
     # parent controls
     if ctl_parent_L:
@@ -324,8 +328,6 @@ def rig(edge_loop,
         mainCurve = curve.createCuveFromEdges(loop,
                                               setName("main_crv", side),
                                               parent=browsCrv_root)
-        print "mainCurve ="
-        print mainCurve
         # collect main poly based curve
         mainCurves.append(mainCurve)
         rigCurves.append(mainCurve)
@@ -337,14 +339,6 @@ def rig(edge_loop,
         for i, cv in enumerate(cvs):
             closestVtx = meshNavigation.getClosestVertexFromTransform(geo, cv)
             closestVtxsList.append(closestVtx)
-            # if i == 0:
-            #     # we know the curv starts from right to left
-            #     offset = [cv[0] - thickness, cv[1], cv[2] - thickness]
-            # elif i == len(cvs) - 1:
-            #     offset = [cv[0] + thickness, cv[1], cv[2] - thickness]
-            # else:
-            #     offset = [cv[0], cv[1] + thickness, cv[2]]
-            # mainCurve.setCV(i, offset, space='world')
 
         # ###################
         # Get control positions
@@ -359,8 +353,7 @@ def rig(edge_loop,
                 secCtrlPos = helpers.divideSegment(mainCurve, sec_div)
 
         else:
-            print mainCurve
-            print main_div
+
             mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
             if secondary_ctl_check:
                 # get secondary controls position
@@ -427,17 +420,11 @@ def rig(edge_loop,
                            ctlPos]
                 mainCtrlOptions.append(options)
 
-            # elif "out_" in posPrefix and symmetry_mode == 1:
-            # elif posPrefix is "out" or "out_" in posPrefix:
             elif posPrefix is "out":
-                # if posPrefix is "out_L":
-                # if side is "L" or posPrefix is "out_L":
                 if side is "L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
                     tControlSize = [0.8, 1.0]
-                # if posPrefix is "out_R":
-                # if side is "R" or posPrefix is "out_R":
                 if side is "R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
@@ -485,7 +472,6 @@ def rig(edge_loop,
                     # if the full list is inver we generate another issues
                     if side is "R":
                         i_name = sec_number_index - i
-                        print i_name
                     else:
                         i_name = i
                     posPrefix = "sec_" + str(i_name).zfill(2)
@@ -499,7 +485,7 @@ def rig(edge_loop,
                     secCtrlOptions.append(options)
 
         params = ["tx", "ty", "tz"]
-        # TODO: this is a constant?
+        # TODO: Is this a constant? Magic number ??
         distSize = 1
 
         if secondary_ctl_check:
@@ -547,8 +533,6 @@ def rig(edge_loop,
                 point = ctlOptions[i][6]
 
                 position = transform.getTransformFromPos(point)
-                print "Parent ------ for: " + oName
-                print controlParentGrp
                 npo = primitive.addTransform(controlParentGrp,
                                              setName("%s_npo" % oName, oSide),
                                              position)
@@ -666,7 +650,6 @@ def rig(edge_loop,
                     rigCurves.append(secondaryCtlCurve[0])
 
         # create upvector / rope curves
-        print "curves from curve "
         mainRope = curve.createCurveFromCurve(
             mainCurve,
             setName("mainRope", side),
@@ -693,9 +676,6 @@ def rig(edge_loop,
 
         rigCurves.append(mainCrv_upv)
         mainCurveUpvs.append(mainCrv_upv)
-        print "++++"
-        print mainCurve
-        print "++++"
 
     # offset upv curves
         for crv in [mainRope_upv, mainCrv_upv]:
@@ -730,9 +710,9 @@ def rig(edge_loop,
 
         if ctl_side is "L":
             if "in_tangent_ctl" in ctl.name():
-                l_child = ctl
+                t_inL = ctl
             if "in_ctl" in ctl.name():
-                l_parent = ctl
+                c_inL = ctl
             if "out_tangent" in ctl.name():
                 t_outL = ctl
             if "out_ctl" in ctl.name():
@@ -740,9 +720,9 @@ def rig(edge_loop,
 
         if ctl_side is "R":
             if "in_tangent_ctl" in ctl.name():
-                r_child = ctl
+                t_inR = ctl
             if "in_ctl" in ctl.name():
-                r_parent = ctl
+                c_inR = ctl
             if "out_tangent" in ctl.name():
                 t_outR = ctl
             if "out_ctl" in ctl.name():
@@ -771,22 +751,25 @@ def rig(edge_loop,
     # parent controls
     if symmetry_mode == 0:
         # inside parents
-        pm.parent(l_child.getParent(2), l_parent)
-        pm.parent(r_child.getParent(2), r_parent)
-        constraints.matrixBlendConstraint([r_parent, l_parent],
+        pm.parent(t_inL.getParent(2), c_inL)
+        pm.parent(t_inR.getParent(2), c_inR)
+
+        pm.parent(t_outL.getParent(2), c_outL)
+        pm.parent(t_outR.getParent(2), c_outR)
+        constraints.matrixBlendConstraint([c_inR, c_inL],
                                           c_mid.getParent(2),
                                           [0.5, 0.5],
                                           't',
                                           True,
                                           c_mid)
-        constraints.matrixConstraint(r_parent,
-                                     c_outR.getParent(2),
-                                     'srt',
-                                     True)
-        constraints.matrixConstraint(l_parent,
-                                     c_outL.getParent(2),
-                                     'srt',
-                                     True)
+        # constraints.matrixConstraint(c_inR,
+        #                              c_outR.getParent(2),
+        #                              'srt',
+        #                              True)
+        # constraints.matrixConstraint(c_inL,
+        #                              c_outL.getParent(2),
+        #                              'srt',
+        #                              True)
         constraints.matrixConstraint(brow_jnt_C,
                                      c_mid.getParent(2),
                                      'rs',
@@ -798,36 +781,25 @@ def rig(edge_loop,
 
             if ctl_side is "L" and "_tangent" not in ctl.name():
                 pm.parent(ctl.getParent(2), ctl_parent_L)
-                # constraints.matrixConstraint(ctl_parent_L,
-                #                              ctl.getParent(2),
-                #                              'srt',
-                #                              True)
+
             if ctl_side is "R" and "_tangent" not in ctl.name():
                 pm.parent(ctl.getParent(2), ctl_parent_R)
-                # constraints.matrixConstraint(ctl_parent_R,
-                #                              ctl.getParent(2),
-                #                              'srt',
-                #                              True)
+
     else:
         ctl_side = getSide(mainControls[0])
 
         if ctl_side is "L":
-            pm.parent(l_child.getParent(2), l_parent)
+            pm.parent(t_inL.getParent(2), c_inL)
             pm.parent(t_outL.getParent(2), c_outL)
         if ctl_side is "R":
-            pm.parent(r_child.getParent(2), r_parent)
+            pm.parent(t_inR.getParent(2), c_inR)
             pm.parent(t_outR.getParent(2), c_outR)
         if ctl_side is "C":
             pm.parent(t_outR.getParent(2), c_outR)
             pm.parent(t_outL.getParent(2), c_outL)
-        print mainControls
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
                 pm.parent(ctl.getParent(2), ctl_parent_L)
-                # constraints.matrixConstraint(ctl_parent_L,
-                #                              ctl.getParent(2),
-                #                              'srt',
-                #                              True)
 
     # Attach secondary controls to main curve
     if secondary_ctl_check:
@@ -942,12 +914,6 @@ def rig(edge_loop,
         crvDrivers = mainCtlCurves
 
     for i, drv in enumerate(crvDrivers):
-        print "=========="
-        print drv
-        print mainCurves[i]
-        print mainCurveUpvs[i]
-        print mainRopes[i]
-        print mainRopeUpvs[i]
         pm.wire(mainCurves[i], w=drv, dropoffDistance=[0, 1000])
         pm.wire(mainCurveUpvs[i], w=drv, dropoffDistance=[0, 1000])
         pm.wire(mainRopes[i], w=drv, dropoffDistance=[0, 1000])
@@ -1012,7 +978,6 @@ def rig(edge_loop,
     # Auto Skinning
     ###########################################
     if do_skin:
-        print allJoints
         # base skin
         if brow_jnt_C:
             try:
@@ -1077,7 +1042,6 @@ def rig(edge_loop,
             # allJoints
             # closestVtxsList
         for i, jnt in enumerate(allJoints):
-            print jnt
             pm.progressWindow(e=True, step=1, status='\nSkinning %s' % jnt)
             skinCluster.addInfluence(jnt, weight=0)
             v = closestVtxsList[i]
