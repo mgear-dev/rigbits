@@ -366,6 +366,7 @@ def rig(edge_loop,
         mainCtrlOptions = []
         secCtrlOptions = []
 
+
         # main control options
         for i, ctlPos in enumerate(mainCtrlPos):
             controlType = "square"
@@ -391,63 +392,89 @@ def rig(edge_loop,
                         controlType = "npo"
             else:
                 posPrefix = "mid_0" + str(i)
+            set_options = False  # when mirror is set we need to avoid the
+            # tanget controls on the central part
 
-            if posPrefix is "in":
+            if posPrefix is "in" or posPrefix is "out_R":
                 if side is "L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
                     tControlSize = [0.8, 1.0]
+                    set_options = True
+                if side is "C" and symmetry_mode:
+                    tPrefix = ["out_R_tangent", posPrefix]
+                    tControlType = ["sphere", controlType]
+                    tControlSize = [0.8, 1.0]
+                    set_options = True
                 if side is "R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
                     tControlSize = [1.0, 0.8]
+                    set_options = True
+                if set_options:
+                    options = [tPrefix[1],
+                               side,
+                               tControlType[1],
+                               6,
+                               tControlSize[1],
+                               [],
+                               ctlPos]
+                    mainCtrlOptions.append(options)
 
-                options = [tPrefix[1],
-                           side,
-                           tControlType[1],
-                           6,
-                           tControlSize[1],
-                           [],
-                           ctlPos]
-                mainCtrlOptions.append(options)
+                    options = [tPrefix[0],
+                               side,
+                               tControlType[0],
+                               6,
+                               tControlSize[0],
+                               [],
+                               ctlPos]
+                    mainCtrlOptions.append(options)
 
-                options = [tPrefix[0],
-                           side,
-                           tControlType[0],
-                           6,
-                           tControlSize[0],
-                           [],
-                           ctlPos]
-                mainCtrlOptions.append(options)
-
-            elif posPrefix is "out":
+            elif posPrefix is "out" or posPrefix is "out_L":
                 if side is "L":
                     tPrefix = [posPrefix + "_tangent", posPrefix]
                     tControlType = ["sphere", controlType]
                     tControlSize = [0.8, 1.0]
+                    set_options = True
+                if side is "C" and symmetry_mode:
+                    tPrefix = ["out_L_tangent", posPrefix]
+                    tControlType = ["sphere", controlType]
+                    tControlSize = [0.8, 1.0]
+                    set_options = True
                 if side is "R":
                     tPrefix = [posPrefix, posPrefix + "_tangent"]
                     tControlType = [controlType, "sphere"]
                     tControlSize = [1.0, 0.8]
-
-                options = [tPrefix[0],
-                           side,
-                           tControlType[0],
-                           6,
-                           tControlSize[0],
-                           [],
-                           ctlPos]
-                mainCtrlOptions.append(options)
-                options = [tPrefix[1],
-                           side,
-                           tControlType[1],
-                           6,
-                           tControlSize[1],
-                           [],
-                           ctlPos]
-                mainCtrlOptions.append(options)
+                    set_options = True
+                if set_options:
+                    options = [tPrefix[0],
+                               side,
+                               tControlType[0],
+                               6,
+                               tControlSize[0],
+                               [],
+                               ctlPos]
+                    mainCtrlOptions.append(options)
+                    options = [tPrefix[1],
+                               side,
+                               tControlType[1],
+                               6,
+                               tControlSize[1],
+                               [],
+                               ctlPos]
+                    mainCtrlOptions.append(options)
 
             else:
+                options = [posPrefix,
+                           side,
+                           controlType,
+                           6,
+                           1.0,
+                           [],
+                           ctlPos]
+                mainCtrlOptions.append(options)
+
+            if controlType == "npo":
                 options = [posPrefix,
                            side,
                            controlType,
@@ -487,7 +514,6 @@ def rig(edge_loop,
         params = ["tx", "ty", "tz"]
         # TODO: Is this a constant? Magic number ??
         distSize = 1
-
         if secondary_ctl_check:
             controlOptionList = [mainCtrlOptions, secCtrlOptions]
         else:
@@ -704,7 +730,6 @@ def rig(edge_loop,
 
     # Reparent controls
     # TODO: this can be more simple an easy to read
-
     for ctl in mainControls:
         ctl_side = getSide(ctl)
 
@@ -730,10 +755,10 @@ def rig(edge_loop,
 
         if symmetry_mode == 0:  # 0 means ON
             if ctl_side is "C":
-                if "out_R" in ctl.name():
-                    c_outR = ctl
-                if "out_L" in ctl.name():
-                    c_outL = ctl
+                if "R_HookNpo" in ctl.name():
+                    h_outR = ctl
+                if "L_HookNpo" in ctl.name():
+                    h_outL = ctl
                 if "mid_" in ctl.name():
                     c_mid = ctl
         else:
@@ -762,14 +787,15 @@ def rig(edge_loop,
                                           't',
                                           True,
                                           c_mid)
-        # constraints.matrixConstraint(c_inR,
-        #                              c_outR.getParent(2),
-        #                              'srt',
-        #                              True)
-        # constraints.matrixConstraint(c_inL,
-        #                              c_outL.getParent(2),
-        #                              'srt',
-        #                              True)
+
+        constraints.matrixConstraint(c_inR,
+                                     h_outR.getParent(2),
+                                     'srt',
+                                     True)
+        constraints.matrixConstraint(c_inL,
+                                     h_outL.getParent(2),
+                                     'srt',
+                                     True)
         constraints.matrixConstraint(brow_jnt_C,
                                      c_mid.getParent(2),
                                      'rs',

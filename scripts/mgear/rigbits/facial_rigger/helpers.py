@@ -8,11 +8,11 @@ from pymel.core import datatypes
 # Helper functions
 # ##################
 
-#sort vertices from X+ to X-
+# sort vertices from X+ to X-
 def sortVerts(points):
     length = len(points)
     for i in range(length):
-        for j in range((i+1),length):
+        for j in range((i + 1), length):
             pos_i = points[i].getPosition(space='world')[0]
             pos_j = points[j].getPosition(space='world')[0]
 
@@ -22,8 +22,10 @@ def sortVerts(points):
                 points[j] = temp1
     return points
 
-#get control positions from each segment
-#generate new curve/rebuild and get cv positions.
+# get control positions from each segment
+# generate new curve/rebuild and get cv positions.
+
+
 def divideSegment(crv, count, name="Temp"):
     if isinstance(crv, str) or isinstance(crv, unicode):
         crv = pm.PyNode(crv)
@@ -39,16 +41,17 @@ def divideSegment(crv, count, name="Temp"):
 
     return dividedPositions
 
+
 def excludeInbetweens(controls, divisions):
-    ## returns inbetween controls
+    # returns inbetween controls
 
     if len(controls) > 4:
-        midRange = divisions/2
+        midRange = divisions / 2
         if ((divisions % 2) == 0):
-            right_inbetweens = controls[midRange+1:-1]
-            left_inbetweens = controls[1:midRange-1]
+            right_inbetweens = controls[midRange + 1:-1]
+            left_inbetweens = controls[1:midRange - 1]
         else:
-            right_inbetweens = controls[midRange+1:-1]
+            right_inbetweens = controls[midRange + 1:-1]
             left_inbetweens = controls[1:midRange]
     else:
         left_inbetweens = None
@@ -56,33 +59,35 @@ def excludeInbetweens(controls, divisions):
 
     return left_inbetweens, right_inbetweens
 
+
 def excludeParents(controls, divisions):
-    ## returns parent controls
-    ##helper for contraint distribution
-    midRange = divisions/2
+    # returns parent controls
+    # helper for contraint distribution
+    midRange = divisions / 2
 
     if len(controls) > 3:
         parents = []
         parents.append(controls[0])
         parents.append(controls[midRange])
         parents.append(controls[-1])
-        if ((divisions % 2) == 0): parents.append(controls[midRange-1])
+        if ((divisions % 2) == 0):
+            parents.append(controls[midRange - 1])
     else:
         parents = controls
     return parents
 
 
-
-def parentInbetweenControls(controls,divisions):
-## get all parent npos, and then get all inbetweens.
-## then distribute parent constraints between parents and inbetweens
-    #there is no sense for parenting anything if there is less than 5 controls
+def parentInbetweenControls(controls, divisions):
+    # get all parent npos, and then get all inbetweens.
+    # then distribute parent constraints between parents and inbetweens
+    # there is no sense for parenting anything if there is less than 5 controls
     if len(controls) > 4:
         parents = excludeParents(controls, divisions)
-        left_inbetweens, right_inbetweens = excludeInbetweens(controls, divisions)
+        left_inbetweens, right_inbetweens = excludeInbetweens(controls,
+                                                              divisions)
         parentSides = [left_inbetweens, right_inbetweens]
 
-        value = (100.0 / (len(left_inbetweens)+1) )/100
+        value = (100.0 / (len(left_inbetweens) + 1)) / 100
 
         index = 0
         if ((divisions % 2) == 0):
@@ -94,17 +99,19 @@ def parentInbetweenControls(controls,divisions):
                                                     pObj.getParent(2),
                                                     mo=True)
 
-                    cns_nodeA.attr(parents[indx_array[index]].name() + "W0").set(counter)
+                    cns_nodeA.attr(
+                        parents[indx_array[index]].name() + "W0").set(counter)
                     counter = counter + value
                 counter = value
-                index = index+1
+                index = index + 1
                 for pObj in side:
                     cns_nodeB = pm.parentConstraint(parents[indx_array[index]],
                                                     pObj.getParent(2),
                                                     mo=True)
-                    cns_nodeB.attr(parents[indx_array[index]].name() + "W1").set(counter)
+                    cns_nodeB.attr(
+                        parents[indx_array[index]].name() + "W1").set(counter)
                     counter = counter + value
-                index = index+1
+                index = index + 1
 
         else:
             for side in parentSides:
@@ -117,12 +124,13 @@ def parentInbetweenControls(controls,divisions):
                     counter = counter + value
                 counter = value
                 for pObj in side:
-                    cns_nodeB = pm.parentConstraint(parents[index+1],
+                    cns_nodeB = pm.parentConstraint(parents[index + 1],
                                                     pObj.getParent(2),
                                                     mo=True)
-                    cns_nodeB.attr(parents[index+1].name() + "W1").set(counter)
+                    cns_nodeB.attr(
+                        parents[index + 1].name() + "W1").set(counter)
                     counter = counter + value
-                index = index+1
+                index = index + 1
 
 
 def addCnsCurve(parent, name, centers, degree=1):
@@ -155,6 +163,7 @@ def addCnsCurve(parent, name, centers, degree=1):
 
     return node, gearNode
 
+
 def addCurve(parent, name, centers, degree=1):
     """Create a curve based on given centers. One point per center
     """
@@ -175,5 +184,3 @@ def addCurve(parent, name, centers, degree=1):
     node = curve.addCurve(parent, name, points, False, degree)
 
     return node
-
-
