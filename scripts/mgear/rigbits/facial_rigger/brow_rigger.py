@@ -1026,7 +1026,7 @@ def rig(edge_loop,
                                          geo,
                                          tsb=True,
                                          nw=2,
-                                         n='skinClsBrow')
+                                         n='skinCluster_{}'.format(geo.name()))
 
         # totalLoops = rigid_loops + falloff_loops
 
