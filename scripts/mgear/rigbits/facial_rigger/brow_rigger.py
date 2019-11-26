@@ -44,8 +44,6 @@ def rig(edge_loop,
     NB_ROPE = 10
     midDivisions = 3
 
-    do_skin = False  # skinning will be disabled by default.
-
     ####################
     # Validate Data
     # ##################
@@ -123,6 +121,7 @@ def rig(edge_loop,
                           r_inner.indices()[0]),
             ass=True,
             ns=True)
+        mid_loop_len = len(mid_loop)
         if not mid_loop:
             pm.displayError(
                 "Mid loop can't be traced. Provably the topology"
@@ -346,6 +345,9 @@ def rig(edge_loop,
         if symmetry_mode == 0:  # 0 means ON
             if side is "C":  # middle segment should be divided into 3 points.
                 mainCtrlPos = helpers.divideSegment(mainCurve, midDivisions)
+                # since the central part is process first we usen the main list
+                # to slice repeted vertex
+                closestVtxsList = closestVtxsList[1:mid_loop_len - 1]
             else:
                 mainCtrlPos = helpers.divideSegment(mainCurve, main_div)
             if secondary_ctl_check and side is not "C":
@@ -365,7 +367,6 @@ def rig(edge_loop,
         # points are sorted from X+, based on this set required options
         mainCtrlOptions = []
         secCtrlOptions = []
-
 
         # main control options
         for i, ctlPos in enumerate(mainCtrlPos):
@@ -929,9 +930,6 @@ def rig(edge_loop,
             crv = [crv for crv in mainCtlCurves if getSide(crv) is "C"]
             crvDrivers.append(crv[0])
 
-            # crv = [crv for crv in secondaryCurves]
-            # for c in crv:
-            #     crvDrivers.append(c)
             crvDrivers = crvDrivers + secondaryCurves
         else:
             crvDrivers = secondaryCurves
@@ -964,6 +962,10 @@ def rig(edge_loop,
             browJoint = brow_jnt_C
 
         for i, cv in enumerate(cvs):
+            if symmetry_mode == 0 and side is "C":
+
+                if i == 0 or i >= mid_loop_len - 1:
+                    continue
 
             oTransUpV = pm.PyNode(pm.createNode(
                 lvlType,
@@ -976,7 +978,8 @@ def rig(edge_loop,
                               n=setName("browRope", side, idx=str(i).zfill(3)),
                               p=browsRope_root, ss=True))
 
-            oParam, oLength = curve.getCurveParamAtPosition(mainRopeUpvs[j], cv)
+            oParam, oLength = curve.getCurveParamAtPosition(mainRopeUpvs[j],
+                                                            cv)
             uLength = curve.findLenghtFromParam(mainRopes[j], oParam)
             u = uLength / oLength
 
@@ -1025,7 +1028,7 @@ def rig(edge_loop,
                                          nw=2,
                                          n='skinClsBrow')
 
-        totalLoops = rigid_loops + falloff_loops
+        # totalLoops = rigid_loops + falloff_loops
 
         # we set the first value 100% for the first initial loop
         skinPercList = [1.0]
@@ -1044,7 +1047,7 @@ def rig(edge_loop,
             inv -= increment
 
         # this loop add an extra 0.0 indices to avoid errors
-        for r in range(100):
+        for r in range(10):
             for rr in range(2):
                 skinPercList.append(0.0)
 
@@ -1054,20 +1057,14 @@ def rig(edge_loop,
 
         vertexRowsList = []
 
-        for side, loop in edge_loops.items():
-            extr_v = meshNavigation.getExtremeVertexFromLoop(loop)
-            vertexList = extr_v[5]
+        totalLoops = rigid_loops + falloff_loops
+        vertexLoopList = meshNavigation.getConcentricVertexLoop(
+            closestVtxsList,
+            totalLoops)
+        vertexRowsList = meshNavigation.getVertexRowsFromLoops(vertexLoopList)
 
-            vertexLoopList = meshNavigation.getConcentricVertexLoop(
-                vertexList,
-                totalLoops)
-            vertexRowList = meshNavigation.getVertexRowsFromLoops(
-                vertexLoopList)
-            vertexRowsList += vertexRowList
-
-            # allJoints
-            # closestVtxsList
         for i, jnt in enumerate(allJoints):
+
             pm.progressWindow(e=True, step=1, status='\nSkinning %s' % jnt)
             skinCluster.addInfluence(jnt, weight=0)
             v = closestVtxsList[i]
@@ -1143,12 +1140,12 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.rigid_loops = QtWidgets.QSpinBox()
         self.rigid_loops.setRange(0, 30)
         self.rigid_loops.setSingleStep(1)
-        self.rigid_loops.setValue(5)
+        self.rigid_loops.setValue(1)
         self.falloff_loops_label = QtWidgets.QLabel("Falloff Loops:")
         self.falloff_loops = QtWidgets.QSpinBox()
         self.falloff_loops.setRange(0, 30)
         self.falloff_loops.setSingleStep(1)
-        self.falloff_loops.setValue(8)
+        self.falloff_loops.setValue(2)
 
         self.do_skin = QtWidgets.QCheckBox(
             'Compute Topological Autoskin')
