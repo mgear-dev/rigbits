@@ -13,6 +13,7 @@ from pymel.core import datatypes
 from mgear import rigbits
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, pickWalk, vector
+from mgear.core import node
 
 from mgear.rigbits.facial_rigger import lib
 from mgear.rigbits.facial_rigger import helpers
@@ -37,6 +38,7 @@ def rig(edge_loop,
         ctl_parent_R=None,
         parent_node=None,
         ctl_name="ctl"):
+
     ######
     # Var
     ######
@@ -253,6 +255,7 @@ def rig(edge_loop,
         try:
             ctl_parent_L = pm.PyNode(ctl_parent_L)
             controls_collect.append(ctl_parent_L)
+            parent_tag_L = ctl_parent_L
         except pm.MayaNodeError:
             pm.displayWarning(
                 "Right (Left) ctl: %s can not be found" % ctl_parent_L)
@@ -260,12 +263,14 @@ def rig(edge_loop,
     else:
         # ctl_parent_L = brow_jnt_L
         ctl_parent_L = brows_root
+        parent_tag_L = None
 
     if symmetry_mode == 0:
         if ctl_parent_R:
             try:
                 ctl_parent_R = pm.PyNode(ctl_parent_R)
                 controls_collect.append(ctl_parent_R)
+                parent_tag_R = ctl_parent_R
             except pm.MayaNodeError:
                 pm.displayWarning(
                     "Right ctl: %s can not be found" % ctl_parent_R)
@@ -273,6 +278,7 @@ def rig(edge_loop,
         else:
             # ctl_parent_R = brow_jnt_R
             ctl_parent_R = brows_root
+            parent_tag_R = None
 
     #####################
     # Groups
@@ -732,6 +738,7 @@ def rig(edge_loop,
     # Reparent controls
     # TODO: this can be more simple an easy to read
     for ctl in mainControls:
+        tag_parent = None
         ctl_side = getSide(ctl)
 
         if ctl_side is "L":
@@ -743,6 +750,7 @@ def rig(edge_loop,
                 t_outL = ctl
             if "out_ctl" in ctl.name():
                 c_outL = ctl
+            tag_parent = parent_tag_L
 
         if ctl_side is "R":
             if "in_tangent_ctl" in ctl.name():
@@ -753,6 +761,7 @@ def rig(edge_loop,
                 t_outR = ctl
             if "out_ctl" in ctl.name():
                 c_outR = ctl
+            tag_parent = parent_tag_R
 
         if symmetry_mode == 0:  # 0 means ON
             if ctl_side is "C":
@@ -762,6 +771,7 @@ def rig(edge_loop,
                     h_outL = ctl
                 if "mid_" in ctl.name():
                     c_mid = ctl
+                tag_parent = parent_tag_L
         else:
             if ctl_side is "C":
                 if "out_R_ctl" in ctl.name():
@@ -773,6 +783,10 @@ def rig(edge_loop,
                     t_outR = ctl
                 if "out_L_tangent" in ctl.name():
                     t_outL = ctl
+
+                tag_parent = parent_tag_L
+        # controls tags
+        node.add_controller_tag(ctl, tagParent=tag_parent)
 
     # parent controls
     if symmetry_mode == 0:
@@ -839,6 +853,7 @@ def rig(edge_loop,
             leftSec = []
             rightSec = []
             for secCtl in secondaryControls:
+                # tag_parent = None
                 if getSide(secCtl) is "L":
                     # connect secondary controla rotate/scale to ctl_parent_L.
                     constraints.matrixConstraint(ctl_parent_L,
@@ -846,6 +861,7 @@ def rig(edge_loop,
                                                  'rs',
                                                  True)
                     leftSec.append(secCtl)
+                    tag_parent = parent_tag_L
 
                 if getSide(secCtl) is "R":
                     # connect secondary controla rotate/scale to ctl_parent_L.
@@ -854,6 +870,10 @@ def rig(edge_loop,
                                                  'rs',
                                                  True)
                     rightSec.append(secCtl)
+                    tag_parent = parent_tag_R
+
+                # controls tags
+                node.add_controller_tag(secCtl, tagParent=tag_parent)
 
             secControlsMerged.append(rightSec)
             secControlsMerged.append(leftSec)
@@ -868,6 +888,9 @@ def rig(edge_loop,
                                              secCtl.getParent(2),
                                              'rs',
                                              True)
+
+                # controls tags
+                node.add_controller_tag(secCtl, tagParent=parent_tag_L)
 
         # create hooks on the main ctl curve
         for j, crv in enumerate(secondaryCurves):
