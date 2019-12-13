@@ -1364,7 +1364,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         secondary_ctl_check_layout = QtWidgets.QVBoxLayout()
         secondary_ctl_check_layout.setContentsMargins(6, 4, 6, 4)
         secondary_ctl_check_layout.addWidget(
-            self.secondary_ctl_check, alignment=0)
+            self.secondary_ctl_check, alignment=QtCore.Qt.Alignment())
 
         main_div_layout = QtWidgets.QHBoxLayout()
         main_div_layout.addWidget(self.main_div_label)
@@ -1403,7 +1403,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.do_skin, alignment=0)
+        topoSkin_layout.addWidget(self.do_skin,
+                                  alignment=QtCore.Qt.Alignment())
         topoSkin_layout.addLayout(skinLoops_layout)
         topoSkin_layout.addLayout(parents_layout)
         self.topoSkin_group.setLayout(topoSkin_layout)

@@ -936,7 +936,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.do_skin, alignment=0)
+        topoSkin_layout.addWidget(self.do_skin,
+                                  alignment=QtCore.Qt.Alignment())
         topoSkin_layout.addLayout(skinLoops_layout)
         topoSkin_layout.addLayout(head_joint_layout)
         topoSkin_layout.addLayout(jaw_joint_layout)

@@ -1109,7 +1109,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.doSkin, alignment=0)
+        topoSkin_layout.addWidget(self.doSkin, alignment=QtCore.Qt.Alignment())
         topoSkin_layout.addLayout(skinLoops_layout)
         self.topoSkin_group.setLayout(topoSkin_layout)
 
@@ -1126,7 +1126,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         manualCorners_layout = QtWidgets.QVBoxLayout()
         manualCorners_layout.setContentsMargins(6, 4, 6, 4)
-        manualCorners_layout.addWidget(self.customCorner, alignment=0)
+        manualCorners_layout.addWidget(self.customCorner,
+                                       alignment=QtCore.Qt.Alignment())
         manualCorners_layout.addLayout(intCorner_layout)
         manualCorners_layout.addLayout(extCorner_layout)
         self.manualCorners_group.setLayout(manualCorners_layout)

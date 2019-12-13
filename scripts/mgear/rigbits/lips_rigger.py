@@ -879,7 +879,8 @@ class lipRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         topoSkin_layout = QtWidgets.QVBoxLayout()
         topoSkin_layout.setContentsMargins(6, 4, 6, 4)
-        topoSkin_layout.addWidget(self.topSkin_check, alignment=0)
+        topoSkin_layout.addWidget(self.topSkin_check,
+                                  alignment=QtCore.Qt.Alignment())
         topoSkin_layout.addLayout(skinLoops_layout)
         topoSkin_layout.addLayout(headJnt_layout)
         topoSkin_layout.addLayout(jawJnt_layout)
