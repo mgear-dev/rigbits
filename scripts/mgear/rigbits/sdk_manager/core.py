@@ -17,7 +17,8 @@ SDK_ANIMCURVES_TYPE = ("animCurveUA", "animCurveUL", "animCurveUU")
 def next_biggest(target, in_list):
     """
     Returns the next highest number in the in_list.
-    If target is greater the the last number in in_list, will return the last item in the list.
+    If target is greater the the last number in in_list, will return the last
+    item in the list.
     """
     next_highest = None
     for item in in_list:
@@ -33,7 +34,8 @@ def next_biggest(target, in_list):
 def next_smallest(target, in_list):
     """
     Returns the next Lowest number in the in_list.
-    If target is smaller the the last number in in_list, will return the first item in the list.
+    If target is smaller the the last number in in_list, will return the first
+    item in the list.
     """
     next_lowest = None
     for item in in_list[::-1]:
@@ -149,7 +151,8 @@ def reset_to_default(mode, clear_sel=False):
 
 def driver_ctl_from_joint(joint):
     """
-    Will try find the Driver control given the joint by searching through the mGear nodes.
+    Will try find the Driver control given the joint by searching through the
+    mGear nodes.
 
     Arguments:
         joint (PyNode): joint to search connections on
@@ -162,9 +165,11 @@ def driver_ctl_from_joint(joint):
     if pm.nodeType(joint) == "joint":
         for connected in pm.listConnections(joint.translateX, source=True):
             if pm.nodeType(connected) == "decomposeMatrix":
-                for conB in pm.listConnections(connected.inputMatrix, source=True):
+                for conB in pm.listConnections(connected.inputMatrix,
+                                               source=True):
                     if pm.nodeType(conB) == "mgear_mulMatrix":
-                        for drvCtl in pm.listConnections(conB.matrixA, source=True):
+                        for drvCtl in pm.listConnections(conB.matrixA,
+                                                         source=True):
                             if pm.nodeType(drvCtl) == "transform":
                                 driver_control = drvCtl
 
@@ -173,10 +178,12 @@ def driver_ctl_from_joint(joint):
 
 def joint_from_driver_ctl(node):
     """
-    Will try find the joint given the Driver control by searching through the mGear nodes.
+    Will try find the joint given the Driver control by searching through the
+    mGear nodes.
 
     TO DO:
-        Expand this to be more robust. Check all channels / not rely on translate connections only.
+        Expand this to be more robust. Check all channels / not rely on
+        translate connections only.
 
     Arguments:
         node (PyNode): node to search connections on
@@ -189,7 +196,8 @@ def joint_from_driver_ctl(node):
         if pm.nodeType(connected) == "mgear_mulMatrix":
             for conA in pm.listConnections(connected.output, destination=True):
                 if pm.nodeType(conA) == "decomposeMatrix":
-                    for conB in pm.listConnections(conA.outputTranslateX, destination=True):
+                    for conB in pm.listConnections(conA.outputTranslateX,
+                                                   destination=True):
                         if pm.nodeType(conB) == "joint":
                             joint = conB
 
@@ -228,7 +236,8 @@ def ctl_from_list(in_list, SDK=False, animTweak=False):
     """
     Returns either the SDK's or animTweaks from the in_list.
     If given a SDK, it will find the animTweak pair and vise versa.
-    To qualify as SDK ctl must have "is_SDK" attr, or "is_tweak" attr for animTweak
+    To qualify as SDK ctl must have "is_SDK" attr, or "is_tweak" attr for
+    animTweak
 
     Arguments:
         in_list (list[PyNode]): List of PyNodes to sort through
@@ -273,10 +282,14 @@ def set_driven_key(driverAttr,
         drivenAttr (PyNode.attribute): Driven.attr to be driven by the SDK
         driverVal (float): Value to use for driver
         drivenVal (float): Value to use for driven
-        preInfinity (int): IndexKey - constant[0], linear[1], cycle[2], cycleOffset[3], Oscillate[4]
-        postInfinity (int): IndexKey - constant[0], linear[1], cycle[2], cycleOffset[3], Oscillate[4]
-        inTanType (str): spline, linear, fast, slow, flat, stepped, step next, fixed, clampedand plateau
-        outTanType (str): spline, linear, fast, slow, flat, stepped, step next, fixed, clampedand plateau
+        preInfinity (int): IndexKey - constant[0], linear[1], cycle[2],
+                           cycleOffset[3], Oscillate[4]
+        postInfinity (int): IndexKey - constant[0], linear[1], cycle[2],
+                     cycleOffset[3], Oscillate[4]
+        inTanType (str): spline, linear, fast, slow, flat, stepped, step next,
+                         fixed, clampedand plateau
+        outTanType (str): spline, linear, fast, slow, flat, stepped, step next,
+                          fixed, clampedand plateau
 
     Returns:
         new Anim UU node or the Edited one.
@@ -324,7 +337,8 @@ def get_driven_from_attr(driverAttr, is_SDK=False):
 
     Arguments:
         driverAttr (PyNode): the driver attr to search
-        is_SDK (bool): if True, will check if the is_SDK attr is present before adding to driven_ctls list.
+        is_SDK (bool): if True, will check if the is_SDK attr is present before
+        adding to driven_ctls list.
 
     Returns:
         list [List of unicode names]
@@ -335,7 +349,7 @@ def get_driven_from_attr(driverAttr, is_SDK=False):
         if pm.nodeType(connected_node) in SDK_ANIMCURVES_TYPE:
             drvn_ctl = sdk_io.getSDKDestination(connected_node)[0]
             if is_SDK:
-                if pm.attributeQuery("is_SDK", node=drvn_ctl, ex=True) is False:
+                if not pm.attributeQuery("is_SDK", node=drvn_ctl, ex=True):
                     break
             if drvn_ctl not in driven_ctls:
                 driven_ctls.append(drvn_ctl)
@@ -440,7 +454,8 @@ def mirror_SDK(driverCtl):
         for sdk_attr in sdk_attrs:
             if pm.nodeType(sdk_attr.node()) in SDK_ANIMCURVES_TYPE:
                 destination_ctl = sdk_io.getSDKDestination(sdk_attr.node())[0]
-                driven_ctls_dict[destination_ctl] = pickWalk.getMirror(pm.PyNode(destination_ctl))[0]
+                driven_ctls_dict[destination_ctl] = pickWalk.getMirror(
+                    pm.PyNode(destination_ctl))[0]
 
     # Removing any Already Existing SDK's from the target driver.
     for s_driven, t_driven in driven_ctls_dict.items():
@@ -549,7 +564,8 @@ def key_at_current_values(drivenCtls,
         driverAtt (str): Driver Attr given as a string
         inTanType (str / optional): Tangent type, by default is linear.
         outTanType (str / optional): Tangent type, by default is linear.
-        zeroKey (bool / optional): if True, will set a zero key before setting the key at current value.
+        zeroKey (bool / optional): if True, will set a zero key before
+                                   setting the key at current value.
 
     Returns:
         n/a
@@ -560,7 +576,8 @@ def key_at_current_values(drivenCtls,
         for channel in keyChannels:
             for Ax in ["X", "Y", "Z"]:
                 if zeroKey:
-                    # Getting the Channel values default, and setting a Zero Key.
+                    # Getting the Channel values default, and setting a
+                    # Zero Key.
                     dvn_val = dvn_ctl.attr(channel + Ax).get()
                     # default_val = 1.0 if channel == "scale" else 0.0
                     # Setting ZERO KEY
@@ -594,8 +611,10 @@ def delete_current_value_keys(current_driver_val, node, sourceDriverFilter):
     Returns:
         n/a
     """
-    sourceSDKInfo = sdk_io.getConnectedSDKs(node, sourceDriverFilter=sourceDriverFilter)
-    sourceSDKInfo.extend(sdk_io.getMultiDriverSDKs(node, sourceDriverFilter=sourceDriverFilter))
+    sourceSDKInfo = sdk_io.getConnectedSDKs(
+        node, sourceDriverFilter=sourceDriverFilter)
+    sourceSDKInfo.extend(sdk_io.getMultiDriverSDKs(
+        node, sourceDriverFilter=sourceDriverFilter))
 
     for source_sdk_attr, driven_ctl in sourceSDKInfo:
         source_sdk = source_sdk_attr.node()
@@ -603,7 +622,10 @@ def delete_current_value_keys(current_driver_val, node, sourceDriverFilter):
 
         for i, key in enumerate(keys):
             if key[0] == current_driver_val:
-                pm.cutKey(source_sdk_attr.node(), index=(i, i), option="keys", clear=1)
+                pm.cutKey(source_sdk_attr.node(),
+                          index=(i, i),
+                          option="keys",
+                          clear=1)
 
 
 def prune_DK_nodes(white_list=[]):
@@ -735,12 +757,16 @@ def set_limits_from_current(axis,
             if upperLimit:
                 current_limit_vals[1] = current_val
                 current_limits[1] = True
-                pm.transformLimits(control, tx=current_limit_vals, etx=current_limits)
+                pm.transformLimits(control,
+                                   tx=current_limit_vals,
+                                   etx=current_limits)
 
             if lowwerLimit:
                 current_limit_vals[0] = current_val
                 current_limits[0] = True
-                pm.transformLimits(control, tx=current_limit_vals, etx=current_limits)
+                pm.transformLimits(control,
+                                   tx=current_limit_vals,
+                                   etx=current_limits)
 
         # ----------------------------------------------
         # Y
@@ -752,12 +778,16 @@ def set_limits_from_current(axis,
             if upperLimit:
                 current_limit_vals[1] = current_val
                 current_limits[1] = True
-                pm.transformLimits(control, ty=current_limit_vals, ety=current_limits)
+                pm.transformLimits(control,
+                                   ty=current_limit_vals,
+                                   ety=current_limits)
 
             if lowwerLimit:
                 current_limit_vals[0] = current_val
                 current_limits[0] = True
-                pm.transformLimits(control, ty=current_limit_vals, ety=current_limits)
+                pm.transformLimits(control,
+                                   ty=current_limit_vals,
+                                   ety=current_limits)
 
         # ----------------------------------------------
         # Z
@@ -769,9 +799,13 @@ def set_limits_from_current(axis,
             if upperLimit:
                 current_limit_vals[1] = current_val
                 current_limits[1] = True
-                pm.transformLimits(control, tz=current_limit_vals, etz=current_limits)
+                pm.transformLimits(control,
+                                   tz=current_limit_vals,
+                                   etz=current_limits)
 
             if lowwerLimit:
                 current_limit_vals[0] = current_val
                 current_limits[0] = True
-                pm.transformLimits(control, tz=current_limit_vals, etz=current_limits)
+                pm.transformLimits(control,
+                                   tz=current_limit_vals,
+                                   etz=current_limits)
