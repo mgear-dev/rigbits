@@ -18,11 +18,11 @@ from mgear.rigbits.SDK_manager import SDK_manager_ui as SDKM_UI
 reload(SDKM_UI)
 
 try:
-	if manager_ui:
-		manager_ui.closeEvent()
+    if manager_ui:
+        manager_ui.closeEvent()
 except:
-	pass
-	
+    pass
+    
 manager_ui = SDKM_UI.SDK_Manager_Dialog()
 manager_ui.show(dockable=True)
 ```

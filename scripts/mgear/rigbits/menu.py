@@ -11,6 +11,7 @@ from mgear.rigbits import (rbf_manager_ui,
                            proxySlicer,
                            utils,
                            mirror_controls)
+from mgear.rigbits.sdk_manager import SDK_manager_ui
 from mgear.core import string
 from functools import partial
 
@@ -40,6 +41,7 @@ def install():
         ("Duplicate symmetrical", rigbits.duplicateSym),
         ("-----", None),
         ("RBF Manager", rbf_manager_ui.show),
+        ("SDK Manager (BETA)", SDK_manager_ui.show),
         ("-----", None),
         ("Space Jumper", rigbits.spaceJump),
         ("Interpolated Transform", rigbits.createInterpolateTransform),
