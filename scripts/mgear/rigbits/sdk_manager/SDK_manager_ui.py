@@ -530,11 +530,6 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.delete_script_jobs()
 
-        workspace_control_name = self.parent().objectName()
-
-        if pm.window(workspace_control_name, exists=True):
-            pm.deleteUI(workspace_control_name)
-
     def hideEvent(self, *args):
         """
         Maya's docable window calls the hideEvent instdead of closeEvent.
