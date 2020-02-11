@@ -13,6 +13,8 @@ from mgear.rigbits import (rbf_manager_ui,
                            mirror_controls)
 from mgear.rigbits.sdk_manager import SDK_manager_ui
 from mgear.core import string
+from mgear.core.anim_utils import bakeSprings
+from mgear.core.anim_utils import clearSprings
 from functools import partial
 
 menuID = "Rigbits"
@@ -56,6 +58,9 @@ def install():
         ("-----", None),
         ("Proxy Slicer", proxySlicer.slice),
         ("Proxy Slicer Parenting", partial(proxySlicer.slice, True)),
+        ("-----", None),
+        ("Bake Spring nodes", bakeSprings),
+        ("Clear Baked Spring nodes", clearSprings),
         ("-----", None),
         (None, legacy_submenu),
     )
