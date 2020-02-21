@@ -478,6 +478,7 @@ def rig(edge_loop="",
             pass
         else:
             pm.sets(ctlSet, add=ctl)
+        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
         attribute.setKeyableAttributes(ctl, params + oPar)
 
         upv = primitive.addTransform(ctl, setName("%s_upv" % oName, oSide), t)
@@ -547,6 +548,7 @@ def rig(edge_loop="",
             pass
         else:
             pm.sets(ctlSet, add=ctl)
+        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
         attribute.setKeyableAttributes(ctl, params + oPar)
 
         upv = primitive.addTransform(ctl, setName("%s_upv" % oName, oSide), t)

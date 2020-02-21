@@ -591,6 +591,7 @@ def rig(edge_loop,
                         ro=rot_offset,
                         po=datatypes.Vector(0, 0, .07 * distSize),
                         color=color)
+                    attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
                 # Create buffer node instead
                 else:
                     ctl = primitive.addTransform(

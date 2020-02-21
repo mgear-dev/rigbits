@@ -299,6 +299,7 @@ def rig(eyeMesh=None,
                            po=datatypes.Vector(0, 0, over_offset),
                            color=4)
     node.add_controller_tag(over_ctl)
+    attribute.addAttribute(over_ctl, "isCtl", "bool", keyable=False)
     attribute.add_mirror_config_channels(over_ctl)
     attribute.setKeyableAttributes(
         over_ctl,
@@ -348,6 +349,7 @@ def rig(eyeMesh=None,
     else:
         pm.sets(ctlSet, add=arrow_ctl)
     attribute.setKeyableAttributes(arrow_ctl, params=["rx", "ry", "rz"])
+    attribute.addAttribute(arrow_ctl, "isCtl", "bool", keyable=False)
 
     # tracking custom trigger
     if side == "R":
@@ -423,6 +425,7 @@ def rig(eyeMesh=None,
                           ro=datatypes.Vector(1.57079633, 0, 0),
                           po=datatypes.Vector(0, 0, offset),
                           color=color)
+        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
         attribute.add_mirror_config_channels(ctl)
         node.add_controller_tag(ctl, over_ctl)
         upControls.append(ctl)
@@ -498,6 +501,7 @@ def rig(eyeMesh=None,
                           ro=datatypes.Vector(1.57079633, 0, 0),
                           po=datatypes.Vector(0, 0, offset),
                           color=color)
+        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
         attribute.add_mirror_config_channels(ctl)
 
         lowControls.append(ctl)
