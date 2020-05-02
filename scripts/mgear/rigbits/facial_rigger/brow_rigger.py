@@ -413,6 +413,8 @@ def rig(edge_loop,
                         controlType = "npo"
             else:
                 posPrefix = "mid_0" + str(i)
+                if side is "R":
+                    posPrefix = "mid_0" + str(len(mainCtrlPos) - (i + 1))
             set_options = False  # when mirror is set we need to avoid the
             # tanget controls on the central part
 
