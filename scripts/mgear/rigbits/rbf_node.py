@@ -35,7 +35,6 @@ import maya.OpenMaya as OpenMaya
 # mgear
 from mgear.core import transform, attribute
 from mgear.synoptic import utils
-from mgear.flex.update_utils import add_attribute
 
 # =============================================================================
 # constants
@@ -147,9 +146,6 @@ def addDrivenGroup(node):
 
     attribute.add_mirror_config_channels(pm.PyNode(drivenName))
 
-    for attr in pm.listAttr(node, userDefined=True) or []:
-        if not mc.objExists("{}.{}".format(drivenName, attr)):
-            add_attribute(node.name(), drivenName, attr)
     if node.endswith(CTL_SUFFIX):
         copyInverseMirrorAttrs(node, drivenName)
     pm.parent(node, drivenName)
@@ -980,8 +976,8 @@ class RBFNode(object):
     def compensateForDirectConnect(self):
         drivenNode = self.getDrivenNode()[0]
         if (mc.nodeType(drivenNode) not in ["transform", "joint"] or
-            mc.objExists("{}{}".format(drivenNode, RBF_LOCATOR_SUFFIX)) or
-            drivenNode.endswith(DRIVEN_SUFFIX)):
+                mc.objExists("{}{}".format(drivenNode, RBF_LOCATOR_SUFFIX)) or
+                drivenNode.endswith(DRIVEN_SUFFIX)):
             return
         transformAttrs = set(TRANSLATE_ATTRS + ROTATE_ATTRS + SCALE_ATTRS)
         drivenAttrs = set(self.getDrivenNodeAttributes())
