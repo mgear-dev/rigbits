@@ -319,8 +319,8 @@ def set_driven_key(driverAttr,
 
     # Setting Attrs
     if animUU:
-        animUU.preInfinity.set(0)
-        animUU.postInfinity.set(0)
+        animUU.preInfinity.set(preInfinity)
+        animUU.postInfinity.set(postInfinity)
 
     # renaming
     if animUU:
