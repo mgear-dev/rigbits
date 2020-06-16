@@ -1,21 +1,8 @@
 import pymel.core as pm
 import mgear
-from mgear import rigbits
-from mgear.rigbits import (rbf_manager_ui,
-                           postSpring,
-                           rope,
-                           facial_rigger,
-                           eye_rigger,
-                           lips_rigger,
-                           channelWrangler,
-                           proxySlicer,
-                           utils,
-                           mirror_controls)
-from mgear.rigbits.sdk_manager import SDK_manager_ui
+
 from mgear.core import string
-from mgear.core.anim_utils import bakeSprings
-from mgear.core.anim_utils import clearSprings
-from functools import partial
+
 
 menuID = "Rigbits"
 
@@ -26,41 +13,41 @@ def install():
     pm.setParent(mgear.menu_id, menu=True)
     pm.menuItem(divider=True)
     commands = (
-        ("Add NPO", rigbits.addNPO),
+        ("Add NPO", str_add_NPO),
         ("-----", None),
         (None, gimmick_submenu),
         ("-----", None),
-        ("Mirror Controls Shape", mirror_controls.show),
-        ("Replace Shape", rigbits.replaceShape),
+        ("Mirror Controls Shape", str_mirror_ctls),
+        ("Replace Shape", str_replace_shape),
         ("-----", None),
-        ("Match All Transform", rigbits.matchWorldXform),
-        ("Match Pos with BBox", rigbits.matchPosfromBBox),
-        ("Align Ref Axis", rigbits.alignToPointsLoop),
+        ("Match All Transform", str_matchWorldXform),
+        ("Match Pos with BBox", str_matchPosfromBBox),
+        ("Align Ref Axis", str_alignToPointsLoop),
         ("-----", None),
         (None, pCtl_sub),
         (None, cCtl_sub),
         ("-----", None),
-        ("Duplicate symmetrical", rigbits.duplicateSym),
+        ("Duplicate symmetrical", str_duplicateSym),
         ("-----", None),
-        ("RBF Manager", rbf_manager_ui.show),
-        ("SDK Manager (BETA)", SDK_manager_ui.show),
+        ("RBF Manager", str_rbf_manager_ui),
+        ("SDK Manager (BETA)", str_SDK_manager_ui),
         ("-----", None),
-        ("Space Jumper", rigbits.spaceJump),
-        ("Interpolated Transform", rigbits.createInterpolateTransform),
+        ("Space Jumper", str_spaceJump),
+        ("Interpolated Transform", str_createInterpolateTransform),
         (None, connect_submenu),
         ("-----", None),
-        ("Spring", postSpring.spring_UI),
-        ("Rope", rope.rope_UI),
+        ("Spring", str_spring_UI),
+        ("Rope", str_rope_UI),
         ("-----", None),
-        ("Channel Wrangler", channelWrangler.openChannelWrangler),
+        ("Channel Wrangler", str_openChannelWrangler),
         ("-----", None),
-        ("Facial Rigger", facial_rigger.show),
+        ("Facial Rigger", str_facial_rigger),
         ("-----", None),
-        ("Proxy Slicer", proxySlicer.slice),
-        ("Proxy Slicer Parenting", partial(proxySlicer.slice, True)),
+        ("Proxy Slicer", str_proxySlicer),
+        ("Proxy Slicer Parenting", str_proxySlicer_parent),
         ("-----", None),
-        ("Bake Spring nodes", bakeSprings),
-        ("Clear Baked Spring nodes", clearSprings),
+        ("Bake Spring nodes", str_bakeSprings),
+        ("Clear Baked Spring nodes", str_clearSprings),
         ("-----", None),
         (None, legacy_submenu),
     )
@@ -75,10 +62,10 @@ def connect_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("Connect SRT", partial(rigbits.connectLocalTransform, None, 1, 1, 1)),
-        ("Connect S", partial(rigbits.connectLocalTransform, None, 1, 0, 0)),
-        ("Connect R", partial(rigbits.connectLocalTransform, None, 0, 1, 0)),
-        ("Connect T", partial(rigbits.connectLocalTransform, None, 0, 0, 1))
+        ("Connect SRT", str_connect_SRT),
+        ("Connect S", str_connect_S),
+        ("Connect R", str_connect_R),
+        ("Connect T", str_connect_T)
 
     )
 
@@ -92,8 +79,8 @@ def legacy_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("FACIAL: Eye Rigger", eye_rigger.showEyeRigUI),
-        ("FACIAL: Lips Rigger", lips_rigger.showLipRigUI)
+        ("FACIAL: Eye Rigger", str_eye_rigger),
+        ("FACIAL: Lips Rigger", str_lips_rigger)
     )
 
     mgear.menu.install("Legacy", commands, parent_menu_id)
@@ -106,10 +93,10 @@ def gimmick_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("Add Joint", rigbits.addJnt),
+        ("Add Joint", str_addJnt),
         ("-----", None),
-        ("Add Blended Joint", rigbits.addBlendedJoint),
-        ("Add Support Joint", rigbits.addSupportJoint)
+        ("Add Blended Joint", str_addBlendedJoint),
+        ("Add Support Joint", str_addSupportJoint)
     )
 
     mgear.menu.install("Gimmick Joints", commands, parent_menu_id)
@@ -135,8 +122,8 @@ def _ctl_submenu(parent_menu_id, name, cCtl=False):
     commands = []
     for c in ctls:
         cm = string.removeInvalidCharacter(c).lower()
-        commands.append([c, partial(rigbits.createCTL, cm, cCtl)])
-
+        commands.append([c, "rigbits.createCTL('{0}', {1})".format(cm,
+                                                                   str(cCtl))])
     mgear.menu.install(name, commands, parent_menu_id)
 
 
@@ -163,4 +150,165 @@ def install_utils_menu(m):
     """
     pm.setParent(m, menu=True)
     pm.menuItem(divider=True)
-    pm.menuItem(label="Create mGear Hotkeys", command=utils.createHotkeys)
+    pm.menuItem(label="Create mGear Hotkeys", command=str_createHotkeys)
+
+
+# menu str commands
+
+str_add_NPO = """
+from mgear import rigbits
+rigbits.addNPO()
+"""
+
+str_mirror_ctls = """
+from mgear.rigbits import mirror_controls
+mirror_controls.show()
+"""
+
+str_replace_shape = """
+from mgear import rigbits
+rigbits.replaceShape()
+"""
+
+str_matchWorldXform = """
+from mgear import rigbits
+rigbits.matchWorldXform()
+"""
+
+str_matchPosfromBBox = """
+from mgear import rigbits
+rigbits.matchPosfromBBox()
+"""
+
+str_alignToPointsLoop = """
+from mgear import rigbits
+rigbits.alignToPointsLoop()
+"""
+
+str_duplicateSym = """
+from mgear import rigbits
+rigbits.duplicateSym()
+"""
+
+str_rbf_manager_ui = """
+from mgear.rigbits import rbf_manager_ui
+rbf_manager_ui.show()
+"""
+
+str_SDK_manager_ui = """
+from mgear.rigbits.sdk_manager import SDK_manager_ui
+SDK_manager_ui.show()
+"""
+
+str_spaceJump = """
+from mgear import rigbits
+rigbits.spaceJump()
+"""
+
+str_createInterpolateTransform = """
+from mgear import rigbits
+rigbits.createInterpolateTransform()
+"""
+
+str_spring_UI = """
+from mgear.rigbits import postSpring
+postSpring.spring_UI()
+"""
+
+str_rope_UI = """
+from mgear.rigbits import rope
+rope.rope_UI()
+"""
+
+str_openChannelWrangler = """
+from mgear.rigbits import channelWrangler
+channelWrangler.openChannelWrangler()
+"""
+
+str_facial_rigger = """
+from mgear.rigbits import facial_rigger
+facial_rigger.show()
+"""
+
+str_proxySlicer = """
+from mgear.rigbits import proxySlicer
+proxySlicer.slice()
+"""
+
+str_proxySlicer_parent = """
+from mgear.rigbits import proxySlicer
+proxySlicer.slice(True)
+"""
+
+
+str_bakeSprings = """
+from mgear.core.anim_utils import bakeSprings
+bakeSprings()
+"""
+
+str_clearSprings = """
+from mgear.core.anim_utils import clearSprings
+clearSprings()
+"""
+
+
+# connect str commands
+
+str_connect_SRT = """
+from mgear import rigbits
+rigbits.connectLocalTransform(None, 1, 1, 1)
+"""
+
+str_connect_S = """
+from mgear import rigbits
+rigbits.connectLocalTransform(None, 1, 0, 0)
+"""
+
+str_connect_R = """
+from mgear import rigbits
+rigbits.connectLocalTransform(None, 0, 1, 0)
+"""
+
+str_connect_T = """
+from mgear import rigbits
+rigbits.connectLocalTransform(None, 0, 0, 1)
+"""
+
+
+# legacy facial str commands
+
+str_eye_rigger = """
+from mgear.rigbits import eye_rigger
+eye_rigger.showEyeRigUI()
+"""
+
+str_lips_rigger = """
+from mgear.rigbits import lips_rigger
+lips_rigger.showLipRigUI()
+"""
+
+
+# Gimmick joints str commands
+
+str_addJnt = """
+from mgear import rigbits
+rigbits.addJnt()
+"""
+
+str_addBlendedJoint = """
+from mgear import rigbits
+rigbits.addBlendedJoint()
+"""
+
+str_addSupportJoint = """
+from mgear import rigbits
+rigbits.addSupportJoint()
+"""
+
+
+# hotkeys str command
+
+str_createHotkeys = """
+from mgear.rigbits import utils
+utils.createHotkeys()
+"""
