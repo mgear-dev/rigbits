@@ -113,6 +113,12 @@ def rig(eyeMesh=None,
     edgeList = extr_v[4]
     vertexList = extr_v[5]
 
+    # Fix for tilted eyes or asian eyes where the mid-point is not the highest altitude vertex
+    if all([customCorner, intCorner, extCorner]):
+        upperEdges, lowerEdges = getUpperAndLowerHalfsFromEdgeLoop(edgeLoopList, intCorner, extCorner)
+        upPos = getMidPointFromEdgeList(upperEdges, pm.MeshVertex(intCorner), pm.MeshVertex(extCorner))
+        lowPos = getMidPointFromEdgeList(lowerEdges, pm.MeshVertex(intCorner), pm.MeshVertex(extCorner))
+
     # Detect the side L or R from the x value
     if inPos.getPosition(space='world')[0] < 0.0:
         side = "R"
@@ -908,6 +914,99 @@ def rig(eyeMesh=None,
                                          tsb=True,
                                          nw=1,
                                          n='skinClsEye')
+
+
+
+def getUpperAndLowerHalfsFromEdgeLoop(inputEdges, start, end):
+    """
+    For eye-rigger. Given a list of edges that form a loop and two vertices,
+    two contiguous edge-lists are returned, sorted by overall height in world-space,
+    i.e. the upper and lower halfs respectively.
+
+    :param inputEdges (list of pm.MeshEdge): Loop-edges
+    :param start (pm.MeshVertex): Start-vertex (interior eyelid corner)
+    :param end (pm.MeshVertex): End-vertex (exterior eyelid corner)
+
+    :returns (tuple): The upper- and lower edge-lists
+    """
+
+    start = pm.MeshVertex(start) if isinstance(start, basestring) else start
+    end = pm.MeshVertex(end) if isinstance(end, basestring) else end
+
+    startEdge = None
+    secondVert = None
+    for edg in inputEdges:
+        connections = edg.connectedVertices()
+        if start in connections:
+            secondVert = connections[1] if connections[0] == start else connections[0]
+            startEdge = edg
+            break
+
+    secondEdge = None
+    for edg in inputEdges:
+        if secondVert in edg.connectedVertices():
+            if edg != startEdge:
+                secondEdge = edg
+                break
+
+    currentEdge = secondEdge
+    edges = [startEdge, secondEdge]
+    if not all([startEdge, secondEdge]):
+        return (None, None, None)
+
+    midOffset = None
+    while True:
+        for edg in inputEdges:
+            if edg in edges:
+                continue
+            if edg in currentEdge.connectedEdges():
+                edges.append(edg)
+                currentEdge = edg
+                if end in edg.connectedVertices():
+                    midOffset = len(edges) - 1
+                break
+        else:
+            break
+
+    half1 = edges[midOffset:]
+    half2 = edges[:midOffset]
+
+    height1 = sum([edge.getPoint(0, "world")[1] for edge in half1])
+    height2 = sum([edge.getPoint(0, "world")[1] for edge in half2])
+
+    return (half1, half2) if height1 > height2 else (half2, half1)
+
+
+def getMidPointFromEdgeList(edgeList, inPos, outPos):
+    """
+    Returns the vertex closest to the middle between inPos and outPos
+
+    :param edgeList (list of pm.MeshEdge): Unordered edges
+    :param inPos (pm.MeshVertex): Interior eye corner
+    :param outPos (pm.MeshVertex): Exterior eye corner
+
+    :returns: pm.MeshVertex
+    """
+    verts = set()
+    for edg in edgeList:
+        for vert in edg.connectedVertices():
+            verts.add(vert)
+
+    start = inPos.getPosition()
+    end = outPos.getPosition()
+    middle = (start - end) * 0.5 + end
+
+    candidates = []
+    for vertex in verts:
+        distance = middle.distanceTo(vertex.getPosition())
+        candidates.append((distance, vertex))
+
+    if not candidates:
+        return None
+
+    dist, vertex = sorted(candidates)[0]
+    return vertex
+
 
 ##########################################################
 # Eye Rig UI
