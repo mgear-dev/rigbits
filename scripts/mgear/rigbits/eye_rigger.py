@@ -401,10 +401,12 @@ def eyeRig(eyeMesh,
     # adding parent average contrains to odd controls
     for i, ctl in enumerate(upControls):
         if utils.is_odd(i):
-            pm.parentConstraint(upControls[i - 1],
+            cns_node = pm.parentConstraint(upControls[i - 1],
                                 upControls[i + 1],
                                 ctl.getParent(),
                                 mo=True)
+            # Make the constraint "noFlip"
+            cns_node.interpType.set(0)
 
     # lower eyelid controls
     lowControls = [upControls[0]]
@@ -480,10 +482,12 @@ def eyeRig(eyeMesh,
     # adding parent average contrains to odd controls
     for i, ctl in enumerate(lowControls):
         if utils.is_odd(i):
-            pm.parentConstraint(lowControls[i - 1],
+            cns_node = pm.parentConstraint(lowControls[i - 1],
                                 lowControls[i + 1],
                                 ctl.getParent(),
                                 mo=True)
+            # Make the constraint "noFlip"
+            cns_node.interpType.set(0)
 
     # Connecting control crvs with controls
     applyop.gear_curvecns_op(upCrv_ctl, upControls)

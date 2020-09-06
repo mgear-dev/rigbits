@@ -419,6 +419,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(upControls[3].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    upControls[3],
@@ -427,6 +428,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(upControls[3].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -435,6 +437,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -443,6 +446,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     # low
     cns_node = pm.parentConstraint(upControls[0],
@@ -452,6 +456,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(lowControls[2].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    lowControls[2],
@@ -460,6 +465,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(lowControls[2].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -468,6 +474,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -476,6 +483,7 @@ def lipsRig(eLoop,
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     ##################
     # Joints
@@ -621,6 +629,7 @@ def lipsRig(eLoop,
             return
 
         # in order to avoid flips lets create a reference transform
+        # also to avoid flips, set any multi target parentConstraint to noFlip
         ref_cns_list = []
         for cns_ref in [headJnt, jawJnt]:
 
@@ -633,21 +642,23 @@ def lipsRig(eLoop,
             ref.setMatrix(t, worldSpace=True)
             ref_cns_list.append(ref)
         # right corner connection
-        pm.parentConstraint(ref_cns_list[0],
+        cns_node = pm.parentConstraint(ref_cns_list[0],
                             ref_cns_list[1],
                             upControls[0].getParent(),
                             mo=True)
+        cns_node.interpType.set(0) # noFlip
         # left corner connection
-        pm.parentConstraint(ref_cns_list[0],
+        cns_node = pm.parentConstraint(ref_cns_list[0],
                             ref_cns_list[1],
                             upControls[-1].getParent(),
                             mo=True)
+        cns_node.interpType.set(0) # noFlip
         # up control connection
-        pm.parentConstraint(headJnt,
+        cns_node = pm.parentConstraint(headJnt,
                             upControls[3].getParent(),
                             mo=True)
         # low control connection
-        pm.parentConstraint(jawJnt,
+        cns_node = pm.parentConstraint(jawJnt,
                             lowControls[2].getParent(),
                             mo=True)
 
