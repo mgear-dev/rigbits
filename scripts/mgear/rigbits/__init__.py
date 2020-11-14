@@ -4,7 +4,7 @@ from pymel import util as pmu
 
 
 import mgear
-from mgear.core import icon, applyop, node, transform
+from mgear.core import icon, applyop, node, transform, attribute
 from mgear.core import primitive, meshNavigation, string
 
 
@@ -96,12 +96,15 @@ def createCTL(type="square", child=False, *args):
                 None, type + "_ctl", datatypes.Matrix(), [1, 0, 0], type)
             iconList.append(o_icon)
 
+    for ico in iconList:
+        attribute.addAttribute(ico, "isCtl", "bool", keyable=False)
+
     try:
         defSet = pm.PyNode("rig_controllers_grp")
         for ico in iconList:
             pm.sets(defSet, add=ico)
     except TypeError:
-        print "not rig_controllers_grp found"
+        print("No rig_controllers_grp found")
         pass
 
 
