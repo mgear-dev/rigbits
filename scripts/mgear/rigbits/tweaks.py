@@ -85,7 +85,7 @@ def createJntTweak(mesh, jntParent, ctlParent):
                                jntParent.getMatrix(worldSpace=True))
     resetJntLocalSRT(joint)
 
-    # hidding joint base by changing the draw mode
+    # hiding joint base by changing the draw mode
     # pm.setAttr(jointBase+".drawStyle", 2)
 
     try:
@@ -103,12 +103,17 @@ def createJntTweak(mesh, jntParent, ctlParent):
                            controlType,
                            w=.8,
                            ro=datatypes.Vector(0, 0, 1.5708))
+
+    attribute.addAttribute(iconBase, "isCtl", "bool", keyable=False)
+
     o_icon = icon.create(iconBase, name + "_tweak_ctl",
                          ctlParent.getMatrix(worldSpace=True),
                          17,
                          controlType,
                          w=.5,
                          ro=datatypes.Vector(0, 0, 1.5708))
+
+    attribute.addAttribute(o_icon, "isCtl", "bool", keyable=False)
 
     for t in [".translate", ".scale", ".rotate"]:
         pm.connectAttr(iconBase + t, jointBase + t)
@@ -135,7 +140,7 @@ def createRivetTweak(mesh,
 
     Args:
         mesh (mesh): The object to add the tweak
-        edgePair (pari list): The edge pairt to create the rivet
+        edgePair (pair list): The edge pair to create the rivet
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
         jntParent (None or dagNode, optional): The parent for the joints
@@ -285,6 +290,9 @@ def createRivetTweak(mesh,
                          color,
                          controlType,
                          w=size)
+
+    attribute.addAttribute(o_icon, "isCtl", "bool", keyable=False)
+
     transform.resetTransform(o_icon)
     if dm_node and dm_node.attr("outputScaleZ").get() < 0:
         pm.connectAttr(o_icon.scale, joint.scale)
@@ -351,7 +359,7 @@ def createMirrorRivetTweak(mesh,
 
     Args:
         mesh (mesh): The object to add the tweak
-        edgePair (pari list): The edge pairt to create the rivet
+        edgePair (pair list): The edge pair to create the rivet
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
         ctlParent (None or dagNode, optional): The parent for the tweak control
