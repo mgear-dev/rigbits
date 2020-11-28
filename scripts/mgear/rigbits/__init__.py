@@ -395,6 +395,7 @@ def replaceShape(source=None, targets=None, *args):
     for target in targets:
         source2 = pm.duplicate(source)[0]
         shape = target.getShapes()
+        cnx = []
         if shape:
             cnx = shape[0].listConnections(plugs=True, c=True)
             cnx = [[c[1], c[0].shortName()] for c in cnx]

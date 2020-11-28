@@ -590,6 +590,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(upControls[3].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    upControls[3],
@@ -598,6 +599,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(upControls[3].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -606,6 +608,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -614,6 +617,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     # low
     cns_node = pm.parentConstraint(upControls[0],
@@ -623,6 +627,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(lowControls[2].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    lowControls[2],
@@ -631,6 +636,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(lowControls[2].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -639,6 +645,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
+    cns_node.interpType.set(0) # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -647,6 +654,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
+    cns_node.interpType.set(0) # noFlip
 
     ###########################################
     # Connecting rig
@@ -676,6 +684,7 @@ def rig(edge_loop="",
             return
 
         # in order to avoid flips lets create a reference transform
+        # also to avoid flips, set any multi target parentConstraint to noFlip
         ref_cns_list = []
         for cns_ref in [head_joint, jaw_joint]:
 
@@ -688,21 +697,23 @@ def rig(edge_loop="",
             ref.setMatrix(t, worldSpace=True)
             ref_cns_list.append(ref)
         # right corner connection
-        pm.parentConstraint(ref_cns_list[0],
+        cns_node = pm.parentConstraint(ref_cns_list[0],
                             ref_cns_list[1],
                             upControls[0].getParent(),
                             mo=True)
+        cns_node.interpType.set(0) # noFlip
         # left corner connection
-        pm.parentConstraint(ref_cns_list[0],
+        cns_node = pm.parentConstraint(ref_cns_list[0],
                             ref_cns_list[1],
                             upControls[-1].getParent(),
                             mo=True)
+        cns_node.interpType.set(0) # noFlip
         # up control connection
-        pm.parentConstraint(head_joint,
+        cns_node = pm.parentConstraint(head_joint,
                             upControls[3].getParent(),
                             mo=True)
         # low control connection
-        pm.parentConstraint(jaw_joint,
+        cns_node = pm.parentConstraint(jaw_joint,
                             lowControls[2].getParent(),
                             mo=True)
 

@@ -95,9 +95,9 @@ def mirror_pairs(pairs):
         pc.parent(source_copy, target)
         pc.makeIdentity(source_copy, apply=True, t=1, r=1, s=1, n=0)
         pc.parent(source_copy, target.getParent())
-        mgear.core.curve.set_color(
-            source_copy, mgear.core.curve.get_color(target)
-        )
+        targetColor = mgear.core.curve.get_color(target)
+        if targetColor:
+            mgear.core.curve.set_color(source_copy, targetColor)
 
         # Replace shape
         mgear.rigbits.replaceShape(source_copy, [target])
