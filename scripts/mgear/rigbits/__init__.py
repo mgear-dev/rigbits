@@ -167,13 +167,7 @@ def addJnt(obj=False,
 
         jnt.setAttr("jointOrient", 0, 0, 0)
         try:
-            mulmat_node = node.createMultMatrixNode(
-                obj + ".worldMatrix", jnt + ".parentInverseMatrix")
-            dm_node = node.createDecomposeMatrixNode(
-                mulmat_node + ".matrixSum")
-            pm.connectAttr(dm_node + ".outputTranslate", jnt + ".t")
-            pm.connectAttr(dm_node + ".outputRotate", jnt + ".r")
-            pm.connectAttr(dm_node + ".outputScale", jnt + ".s")
+            applyop.gear_matrix_cns(obj, jnt)
         except RuntimeError:
             for axis in ["tx", "ty", "tz", "rx", "ry", "rz"]:
                 jnt.attr(axis).set(0.0)
