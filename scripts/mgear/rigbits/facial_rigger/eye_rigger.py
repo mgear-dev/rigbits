@@ -16,7 +16,9 @@ from pymel.core import datatypes
 from mgear import rigbits
 from . import lib
 
-
+# TODO: change deformers_group to static_rig_parent
+# for the moment we keep this for backwards compativility with
+# old configuration files
 ##########################################################
 # Eye rig constructor
 ##########################################################
@@ -45,7 +47,6 @@ def rig(eyeMesh=None,
         lowerHTrack=0.01,
         aim_controller="",
         deformers_group=""):
-
     """Create eyelid and eye rig
 
     Args:
@@ -222,7 +223,10 @@ def rig(eyeMesh=None,
     midTarget = curve.createCurveFromCurve(
         lowCrv, setName("midBlink_target"), nbPoints=30, parent=eyeCrv_root)
     midTargetLower = curve.createCurveFromCurve(
-        lowCrv, setName("midBlinkLower_target"), nbPoints=30, parent=eyeCrv_root)
+        lowCrv,
+        setName("midBlinkLower_target"),
+        nbPoints=30,
+        parent=eyeCrv_root)
 
     rigCrvs = [upCrv,
                lowCrv,
@@ -442,9 +446,9 @@ def rig(eyeMesh=None,
     for i, ctl in enumerate(upControls):
         if utils.is_odd(i):
             cns_node = pm.parentConstraint(upControls[i - 1],
-                                upControls[i + 1],
-                                ctl.getParent(),
-                                mo=True)
+                                           upControls[i + 1],
+                                           ctl.getParent(),
+                                           mo=True)
             # Make the constraint "noFlip"
             cns_node.interpType.set(0)
 
@@ -524,9 +528,9 @@ def rig(eyeMesh=None,
     for i, ctl in enumerate(lowControls):
         if utils.is_odd(i):
             cns_node = pm.parentConstraint(lowControls[i - 1],
-                                lowControls[i + 1],
-                                ctl.getParent(),
-                                mo=True)
+                                           lowControls[i + 1],
+                                           ctl.getParent(),
+                                           mo=True)
             # Make the constraint "noFlip"
             cns_node.interpType.set(0)
 
@@ -555,9 +559,9 @@ def rig(eyeMesh=None,
                            midTarget,
                            n="blendShapeMidBlink")
     bs_midLower = pm.blendShape(lowTarget,
-                           upTarget,
-                           midTargetLower,
-                           n="blendShapeMidLowerBlink")
+                                upTarget,
+                                midTargetLower,
+                                n="blendShapeMidLowerBlink")
 
     # setting blendshape reverse connections
     rev_node = pm.createNode("reverse")
@@ -565,14 +569,17 @@ def rig(eyeMesh=None,
     pm.connectAttr(rev_node + ".outputX", bs_upBlink[0].attr(upTarget.name()))
     rev_node = pm.createNode("reverse")
     rev_nodeLower = pm.createNode("reverse")
-    pm.connectAttr(bs_lowBlink[0].attr(midTargetLower.name()), rev_node + ".inputX")
+    pm.connectAttr(bs_lowBlink[0].attr(
+        midTargetLower.name()), rev_node + ".inputX")
     pm.connectAttr(rev_node + ".outputX",
                    bs_lowBlink[0].attr(lowTarget.name()))
     rev_node = pm.createNode("reverse")
     pm.connectAttr(bs_mid[0].attr(upTarget.name()), rev_node + ".inputX")
-    pm.connectAttr(bs_midLower[0].attr(upTarget.name()), rev_nodeLower + ".inputX")
+    pm.connectAttr(bs_midLower[0].attr(
+        upTarget.name()), rev_nodeLower + ".inputX")
     pm.connectAttr(rev_node + ".outputX", bs_mid[0].attr(lowTarget.name()))
-    pm.connectAttr(rev_nodeLower + ".outputX", bs_midLower[0].attr(lowTarget.name()))
+    pm.connectAttr(rev_nodeLower + ".outputX",
+                   bs_midLower[0].attr(lowTarget.name()))
 
     # setting default values
     bs_mid[0].attr(upTarget.name()).set(blinkH)
@@ -1042,7 +1049,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.defSet = QtWidgets.QLineEdit()
         self.deformersSet_button = QtWidgets.QPushButton("<<")
 
-        self.deformers_group_label = QtWidgets.QLabel("Deformers Group:")
+        self.deformers_group_label = QtWidgets.QLabel("Static Rig Parent:")
         self.deformers_group = QtWidgets.QLineEdit()
         self.deformers_group_button = QtWidgets.QPushButton("<<")
 
