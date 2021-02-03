@@ -883,6 +883,8 @@ class RBFNode(rbf_node.RBFNode):
             mc.parent(self.transformNode, drivenNode)
         if drivenNode.endswith(DRIVEN_SUFFIX):
             drivenControlName = drivenNode.replace(DRIVEN_SUFFIX, CTL_SUFFIX)
+            if not mc.objExists(drivenControlName):
+                drivenControlName = drivenNode.replace(DRIVEN_SUFFIX, "")
             drivenOtherName = drivenNode.replace(DRIVEN_SUFFIX, "")
             if not mc.objExists(drivenControlName):
                 return attrs_dict

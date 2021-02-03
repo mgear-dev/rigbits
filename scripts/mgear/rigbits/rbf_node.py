@@ -34,7 +34,7 @@ import maya.OpenMaya as OpenMaya
 
 # mgear
 from mgear.core import transform, attribute
-from mgear.synoptic import utils
+from mgear.core import anim_utils
 
 # =============================================================================
 # constants
@@ -101,9 +101,9 @@ def copyInverseMirrorAttrs(srcNode, dstNode):
     """
     srcNode = pm.PyNode(srcNode)
     dstNode = pm.PyNode(dstNode)
-    attrsToInv = utils.listAttrForMirror(srcNode)
+    attrsToInv = anim_utils.listAttrForMirror(srcNode)
     for attr in attrsToInv:
-        inAttr = utils.getInvertCheckButtonAttrName(attr)
+        inAttr = anim_utils.getInvertCheckButtonAttrName(attr)
         try:
             val = mc.getAttr("{}.{}".format(srcNode, inAttr))
             mc.setAttr("{}.{}".format(dstNode, inAttr), val)
@@ -486,6 +486,8 @@ def recallDriverControlPose(driverControl, poseInfo, index):
             # not to be bothered with locked, hidden, connected attrs
             mc.setAttr("{}.{}".format(driverControl, attr), values[index])
         except Exception:
+            pm.displayWarning(
+                "Pose can't be recalled for {}".format(driverControl))
             pass
 
 

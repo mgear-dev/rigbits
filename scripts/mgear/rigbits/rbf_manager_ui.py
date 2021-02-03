@@ -71,7 +71,7 @@ import maya.OpenMayaUI as mui
 # mgear
 from mgear.core import pyqt
 import mgear.core.string as mString
-from mgear.synoptic import utils
+from mgear.core import anim_utils
 from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
@@ -1497,7 +1497,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         rbfModule = rbf_io.RBF_MODULES[mrRbfType]
         rbfModule.createRBFFromInfo(mirrorWeightInfo)
         setupTargetInfo_dict = self.getMirroredSetupTargetsInfo()
-        nameSpace = utils.getNamespace(aRbfNode.name)
+        nameSpace = anim_utils.getNamespace(aRbfNode.name)
         mrRbfNodes = [v[1] for k, v in setupTargetInfo_dict.iteritems()]
         [v.setToggleRBFAttr(0) for v in mrRbfNodes]
         mrDriverNode = mrRbfNodes[0].getDriverNode()[0]
@@ -1506,13 +1506,13 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         driverControl = pm.PyNode(driverControl)
         for index in range(poseIndices):
             aRbfNode.recallDriverPose(index)
-            utils.mirrorPose(flip=False, nodes=[driverControl])
+            anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
             for srcNode, dstValues in setupTargetInfo_dict.iteritems():
-                mrData.extend(utils.calculateMirrorData(srcNode,
-                                                        dstValues[0]))
+                mrData.extend(anim_utils.calculateMirrorData(srcNode,
+                                                             dstValues[0]))
             for entry in mrData:
-                utils.applyMirror(nameSpace, entry)
+                anim_utils.applyMirror(nameSpace, entry)
 
             poseInputs = rbf_node.getMultipleAttrs(mrDriverNode, mrDriverAttrs)
             for mrRbfNode in mrRbfNodes:
