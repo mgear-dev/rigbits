@@ -1027,7 +1027,6 @@ class lipRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         data_string = json.dumps(self.buildDict, indent=4, sort_keys=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=0,
             fileFilter='Lips Rigger Configuration .lips (*%s)' % ".lips")
         if not filePath:

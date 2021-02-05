@@ -346,7 +346,6 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         configDict = self._buildConfigDict()
         data_string = json.dumps(configDict, indent=4, sort_keys=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=0,
             fileFilter='Channel Wrangler Configuration .cwc (*%s)' % ".cwc")
         if not filePath:
@@ -364,7 +363,6 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # configuration or replace.
         startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=1,
             startingDirectory=startDir,
             fileFilter='Channel Wrangler Configuration .cwc (*%s)' % ".cwc")

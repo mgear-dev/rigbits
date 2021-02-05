@@ -1026,7 +1026,6 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         fileFilter = "JSON (*.json);;All Files (*.*)"
         file_path = pm.fileDialog2(fileFilter=fileFilter,
-                                   dialogStyle=2,
                                    fm=mode,
                                    caption=caption + caption)
         if file_path:

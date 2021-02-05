@@ -1177,7 +1177,6 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         data_string = json.dumps(self.buildDict, indent=4, sort_keys=True)
         filePath = pm.fileDialog2(
-            dialogStyle=2,
             fileMode=0,
             fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
         if not filePath:

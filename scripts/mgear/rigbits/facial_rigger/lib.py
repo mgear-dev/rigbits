@@ -70,7 +70,6 @@ def get_file_path(filter, mode):
         filemode = 0
 
     file_path = pymel.core.fileDialog2(
-        dialogStyle=2,
         fileMode=filemode,
         fileFilter=filter
     )
