@@ -31,7 +31,9 @@ def rig(edge_loop="",
         head_joint=None,
         jaw_joint=None,
         parent_node=None,
-        control_name="ctl"):
+        control_name="ctl",
+        upper_lip_ctl=None,
+        lower_lip_ctl=None):
 
     ######
     # Var
@@ -590,7 +592,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(upControls[3].name() + "W1").set(.25)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    upControls[3],
@@ -599,7 +601,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(upControls[3].name() + "W1").set(.75)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -608,7 +610,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(upControls[3],
                                    upControls[6],
@@ -617,7 +619,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[3].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     # low
     cns_node = pm.parentConstraint(upControls[0],
@@ -627,7 +629,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.75)
     cns_node.attr(lowControls[2].name() + "W1").set(.25)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(upControls[0],
                                    lowControls[2],
@@ -636,7 +638,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(upControls[0].name() + "W0").set(.25)
     cns_node.attr(lowControls[2].name() + "W1").set(.75)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -645,7 +647,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.75)
     cns_node.attr(upControls[6].name() + "W1").set(.25)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     cns_node = pm.parentConstraint(lowControls[2],
                                    upControls[6],
@@ -654,7 +656,7 @@ def rig(edge_loop="",
                                    skipRotate=["x", "y", "z"])
     cns_node.attr(lowControls[2].name() + "W0").set(.25)
     cns_node.attr(upControls[6].name() + "W1").set(.75)
-    cns_node.interpType.set(0) # noFlip
+    cns_node.interpType.set(0)  # noFlip
 
     ###########################################
     # Connecting rig
@@ -683,10 +685,30 @@ def rig(edge_loop="",
                               "fount in the scene" % jaw_joint)
             return
 
+        ref_ctls = [head_joint, jaw_joint]
+
+        if upper_lip_ctl and lower_lip_ctl:
+            try:
+                if isinstance(upper_lip_ctl, basestring):
+                    upper_lip_ctl = pm.PyNode(upper_lip_ctl)
+            except pm.MayaNodeError:
+                pm.displayWarning("Upper Lip Ctl %s. Can not be "
+                                  "fount in the scene" % upper_lip_ctl)
+                return
+            try:
+                if isinstance(lower_lip_ctl, basestring):
+                    lower_lip_ctl = pm.PyNode(lower_lip_ctl)
+            except pm.MayaNodeError:
+                pm.displayWarning("Lower Lip Ctl %s. Can not be "
+                                  "fount in the scene" % lower_lip_ctl)
+                return
+            ref_ctls = [upper_lip_ctl, lower_lip_ctl]
+
         # in order to avoid flips lets create a reference transform
         # also to avoid flips, set any multi target parentConstraint to noFlip
         ref_cns_list = []
-        for cns_ref in [head_joint, jaw_joint]:
+        print ref_ctls
+        for cns_ref in ref_ctls:
 
             t = transform.getTransformFromPos(
                 cns_ref.getTranslation(space='world'))
@@ -698,24 +720,24 @@ def rig(edge_loop="",
             ref_cns_list.append(ref)
         # right corner connection
         cns_node = pm.parentConstraint(ref_cns_list[0],
-                            ref_cns_list[1],
-                            upControls[0].getParent(),
-                            mo=True)
-        cns_node.interpType.set(0) # noFlip
+                                       ref_cns_list[1],
+                                       upControls[0].getParent(),
+                                       mo=True)
+        cns_node.interpType.set(0)  # noFlip
         # left corner connection
         cns_node = pm.parentConstraint(ref_cns_list[0],
-                            ref_cns_list[1],
-                            upControls[-1].getParent(),
-                            mo=True)
-        cns_node.interpType.set(0) # noFlip
+                                       ref_cns_list[1],
+                                       upControls[-1].getParent(),
+                                       mo=True)
+        cns_node.interpType.set(0)  # noFlip
         # up control connection
-        cns_node = pm.parentConstraint(head_joint,
-                            upControls[3].getParent(),
-                            mo=True)
+        cns_node = pm.parentConstraint(ref_cns_list[0],
+                                       upControls[3].getParent(),
+                                       mo=True)
         # low control connection
-        cns_node = pm.parentConstraint(jaw_joint,
-                            lowControls[2].getParent(),
-                            mo=True)
+        cns_node = pm.parentConstraint(ref_cns_list[1],
+                                       lowControls[2].getParent(),
+                                       mo=True)
 
     ###########################################
     # Auto Skinning
@@ -860,6 +882,16 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.jaw_joint = QtWidgets.QLineEdit()
         self.jaw_joint_button = QtWidgets.QPushButton("<<")
 
+        # Lips Controls
+        self.control_ref_group = QtWidgets.QGroupBox(
+            "Lips Base Controls (Optional. Required for Shifter Game tools)")
+        self.upper_lip_ctl_label = QtWidgets.QLabel("Upper Lip Control:")
+        self.upper_lip_ctl = QtWidgets.QLineEdit()
+        self.upper_lip_ctl_button = QtWidgets.QPushButton("<<")
+        self.lower_lip_ctl_label = QtWidgets.QLabel("Lower Lip Control:")
+        self.lower_lip_ctl = QtWidgets.QLineEdit()
+        self.lower_lip_ctl_button = QtWidgets.QPushButton("<<")
+
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
         self.rigid_loops_label = QtWidgets.QLabel("Rigid Loops:")
@@ -940,6 +972,23 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         joints_layout.addLayout(jaw_joint_layout)
         self.joints_group.setLayout(joints_layout)
 
+        # control Layout
+        upper_lip_ctl_layout = QtWidgets.QHBoxLayout()
+        upper_lip_ctl_layout.addWidget(self.upper_lip_ctl_label)
+        upper_lip_ctl_layout.addWidget(self.upper_lip_ctl)
+        upper_lip_ctl_layout.addWidget(self.upper_lip_ctl_button)
+
+        lower_lip_ctl_layout = QtWidgets.QHBoxLayout()
+        lower_lip_ctl_layout.addWidget(self.lower_lip_ctl_label)
+        lower_lip_ctl_layout.addWidget(self.lower_lip_ctl)
+        lower_lip_ctl_layout.addWidget(self.lower_lip_ctl_button)
+
+        control_ref_layout = QtWidgets.QVBoxLayout()
+        control_ref_layout.setContentsMargins(6, 4, 6, 4)
+        control_ref_layout.addLayout(upper_lip_ctl_layout)
+        control_ref_layout.addLayout(lower_lip_ctl_layout)
+        self.control_ref_group.setLayout(control_ref_layout)
+
         # topological autoskin Layout
         skinLoops_layout = QtWidgets.QGridLayout()
         skinLoops_layout.addWidget(self.rigid_loops_label, 0, 0)
@@ -991,6 +1040,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(self.geometryInput_group)
         main_layout.addWidget(self.options_group)
         main_layout.addWidget(self.joints_group)
+        main_layout.addWidget(self.control_ref_group)
         main_layout.addWidget(self.topoSkin_group)
         main_layout.addWidget(self.build_button)
         main_layout.addWidget(self.import_button)
@@ -1016,6 +1066,12 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.jaw_joint_button.clicked.connect(
             partial(self.populate_element, self.jaw_joint, "joint")
+        )
+        self.upper_lip_ctl_button.clicked.connect(
+            partial(self.populate_element, self.upper_lip_ctl)
+        )
+        self.lower_lip_ctl_button.clicked.connect(
+            partial(self.populate_element, self.lower_lip_ctl)
         )
         self.build_button.clicked.connect(self.build_rig)
         self.import_button.clicked.connect(self.import_settings)
