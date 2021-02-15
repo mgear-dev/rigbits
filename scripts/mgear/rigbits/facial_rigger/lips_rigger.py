@@ -164,7 +164,7 @@ def rig(edge_loop="",
     try:
         rightPos = pm.PyNode(right_vertex)
         leftPos = pm.PyNode(left_vertex)
-    except MayaNodeError:
+    except pm.MayaNodeError:
         # Left and right not specified
         pass
 
@@ -213,8 +213,8 @@ def rig(edge_loop="",
         elif i == len(cvs) - 1:
             offset = [cv[0] + thickness, cv[1], cv[2] - thickness]
         else:
-            # we populate the closest vertext list here to skipt the first
-            # and latest point
+            # we populate the closest vertex list here to skip the first
+            # and last point
             offset = [cv[0], cv[1] - thickness, cv[2]]
         lowCrv.setCV(i, offset, space='world')
 
