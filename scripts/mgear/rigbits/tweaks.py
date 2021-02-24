@@ -135,7 +135,9 @@ def createRivetTweak(mesh,
                      defSet=None,
                      ctlSet=None,
                      side=None,
-                     gearMulMatrix=True):
+                     gearMulMatrix=True,
+                     attach_rot=False,
+                     inputMesh=None):
     """Create a tweak joint attached to the mesh using a rivet
 
     Args:
@@ -159,8 +161,8 @@ def createRivetTweak(mesh,
         PyNode: The tweak control
     """
     blendShape = blendShapes.getBlendShape(mesh)
-
-    inputMesh = blendShape.listConnections(sh=True, t="shape", d=False)[0]
+    if not inputMesh:
+        inputMesh = blendShape.listConnections(sh=True, t="shape", d=False)[0]
 
     oRivet = rivet.rivet()
     base = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
@@ -187,7 +189,11 @@ def createRivetTweak(mesh,
                                   n=nameSide + "_npo",
                                   p=ctlParent,
                                   ss=True))
-    pm.pointConstraint(base, npo, mo=False)
+    if attach_rot:
+        # npo.setTranslation(base.getTranslation(space="world"), space="world")
+        pm.parentConstraint(base, npo, mo=False)
+    else:
+        pm.pointConstraint(base, npo, mo=False)
 
     # create joints
     if not jntParent:
@@ -353,7 +359,9 @@ def createMirrorRivetTweak(mesh,
                            defSet=None,
                            ctlSet=None,
                            side=None,
-                           gearMulMatrix=True):
+                           gearMulMatrix=True,
+                           attach_rot=False,
+                           inputMesh=None):
     """Create a tweak joint attached to the mesh using a rivet.
     The edge pair will be used to find the mirror position on the mesh
 
@@ -377,8 +385,14 @@ def createMirrorRivetTweak(mesh,
     Returns:
         PyNode: The tweak control
     """
-    mirror_edge_pair = [mesh_navi.find_mirror_edge(mesh, edgePair[0]).index(),
-                        mesh_navi.find_mirror_edge(mesh, edgePair[1]).index()]
+    if not inputMesh:
+        navi_mesh = mesh
+    else:
+        navi_mesh = inputMesh
+    mirror_edge_pair = [mesh_navi.find_mirror_edge(navi_mesh,
+                                                   edgePair[1]).index(),
+                        mesh_navi.find_mirror_edge(navi_mesh,
+                                                   edgePair[0]).index()]
     return createRivetTweak(mesh,
                             mirror_edge_pair,
                             name,
@@ -390,7 +404,9 @@ def createMirrorRivetTweak(mesh,
                             defSet,
                             ctlSet,
                             side,
-                            gearMulMatrix)
+                            gearMulMatrix,
+                            attach_rot,
+                            inputMesh)
 
 
 def createRivetTweakFromList(mesh,
@@ -409,7 +425,9 @@ def createRivetTweakFromList(mesh,
                              mCtlParent=None,
                              mjntParent=None,
                              mColor=None,
-                             gearMulMatrix=True):
+                             gearMulMatrix=True,
+                             attach_rot=False,
+                             inputMesh=None):
     """Create multiple rivet tweaks from a list of edge pairs
 
     Args:
@@ -462,7 +480,9 @@ def createRivetTweakFromList(mesh,
                                defSet=defSet,
                                ctlSet=ctlSet,
                                side=side,
-                               gearMulMatrix=gearMulMatrix)
+                               gearMulMatrix=gearMulMatrix,
+                               attach_rot=attach_rot,
+                               inputMesh=inputMesh)
         ctlList.append(ctl)
         if mirror:
             m_ctl = createMirrorRivetTweak(mesh,
@@ -476,7 +496,9 @@ def createRivetTweakFromList(mesh,
                                            defSet=defSet,
                                            ctlSet=ctlSet,
                                            side=side,
-                                           gearMulMatrix=gearMulMatrix)
+                                           gearMulMatrix=gearMulMatrix,
+                                           attach_rot=attach_rot,
+                                           inputMesh=inputMesh)
             ctlList.append(m_ctl)
 
     return ctlList
@@ -500,7 +522,9 @@ def createRivetTweakLayer(layerMesh,
                           mjntParent=None,
                           mColor=None,
                           gearMulMatrix=True,
-                          static_jnt=None):
+                          static_jnt=None,
+                          attach_rot=False,
+                          inputMesh=None):
     """Create a rivet tweak layer setup
 
     Args:
@@ -578,7 +602,9 @@ def createRivetTweakLayer(layerMesh,
                              mCtlParent=mCtlParent,
                              mjntParent=mjntParent,
                              mColor=mColor,
-                             gearMulMatrix=gearMulMatrix)
+                             gearMulMatrix=gearMulMatrix,
+                             attach_rot=attach_rot,
+                             inputMesh=inputMesh)
 
 # Helpers
 
