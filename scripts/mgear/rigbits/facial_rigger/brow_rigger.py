@@ -34,6 +34,7 @@ def rig(edge_loop,
         brow_jnt_C=None,
         brow_jnt_L=None,
         brow_jnt_R=None,
+        ctl_parent_C=None,
         ctl_parent_L=None,
         ctl_parent_R=None,
         parent_node=None,
@@ -276,8 +277,21 @@ def rig(edge_loop,
             return
     else:
         # ctl_parent_R = brow_jnt_R
-        ctl_parent_R = brows_root
-        parent_tag_R = None
+        ctl_parent_R = brows_
+
+    if ctl_parent_C:
+        try:
+            ctl_parent_C = pm.PyNode(ctl_parent_C)
+            controls_collect.append(ctl_parent_C)
+            parent_tag_C = ctl_parent_C
+        except pm.MayaNodeError:
+            pm.displayWarning(
+                "Main ctl: %s can not be found" % ctl_parent_R)
+            return
+    else:
+        # ctl_parent_R = brow_jnt_R
+        ctl_parent_C = brows_root
+        parent_tag_C = None
 
     if symmetry_mode == 0:
         if ctl_parent_R:
@@ -828,7 +842,7 @@ def rig(edge_loop,
                                      h_outL.getParent(2),
                                      'srt',
                                      True)
-        constraints.matrixConstraint(brow_jnt_C,
+        constraints.matrixConstraint(ctl_parent_C,
                                      c_mid.getParent(2),
                                      'rs',
                                      True)
@@ -1273,7 +1287,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.brow_jnt_R_button = QtWidgets.QPushButton("<<")
 
         # ctl parents
-        self.ctl_parent_L_label = QtWidgets.QLabel("Main / Left control:")
+        self.ctl_parent_C_label = QtWidgets.QLabel("Main Central control:")
+        self.ctl_parent_C = QtWidgets.QLineEdit()
+        self.ctl_parent_C_button = QtWidgets.QPushButton("<<")
+
+        self.ctl_parent_L_label = QtWidgets.QLabel("Left control:")
         self.ctl_parent_L = QtWidgets.QLineEdit()
         self.ctl_parent_L_button = QtWidgets.QPushButton("<<")
 
@@ -1342,6 +1360,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         brow_jnt_C_layout.addWidget(self.brow_jnt_C_button)
 
         # controls
+        ctl_parent_C_layout = QtWidgets.QHBoxLayout()
+        ctl_parent_C_layout.addWidget(self.ctl_parent_C_label)
+        ctl_parent_C_layout.addWidget(self.ctl_parent_C)
+        ctl_parent_C_layout.addWidget(self.ctl_parent_C_button)
+
         ctl_parent_L_layout = QtWidgets.QHBoxLayout()
         ctl_parent_L_layout.addWidget(self.ctl_parent_L_label)
         ctl_parent_L_layout.addWidget(self.ctl_parent_L)
@@ -1369,6 +1392,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         controls_layout = QtWidgets.QVBoxLayout()
         controls_layout.setContentsMargins(6, 4, 6, 4)
+        controls_layout.addLayout(ctl_parent_C_layout)
         controls_layout.addLayout(ctl_parent_L_layout)
         controls_layout.addLayout(ctl_parent_R_layout)
         self.controls_group.setLayout(controls_layout)
@@ -1446,7 +1470,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_connections(self):
         self.symmetry_mode.currentTextChanged.connect(self.setSymmetryLayout)
         self.side.currentIndexChanged.connect(self.setSideControls)
-        self.secondary_ctl_check.stateChanged.connect(self.setSecondaryControls)
+        self.secondary_ctl_check.stateChanged.connect(
+            self.setSecondaryControls)
 
         self.edge_loop_button.clicked.connect(partial(self.populate_edge_loop,
                                                       self.edge_loop))
@@ -1466,6 +1491,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                                        self.brow_jnt_C,
                                                        "joint"))
 
+        self.ctl_parent_C_button.clicked.connect(partial(self.populate_element,
+                                                         self.ctl_parent_C))
         self.ctl_parent_L_button.clicked.connect(partial(self.populate_element,
                                                          self.ctl_parent_L))
 
