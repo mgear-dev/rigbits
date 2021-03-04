@@ -385,9 +385,10 @@ def deleteRBFToggleAttr(node):
     Args:
         node (str): node to remove toggle attr from
     """
+    mc.setAttr("{}.{}".format(node, RBF_SCALE_ATTR), edit=True, lock=False)
     try:
         mc.deleteAttr("{}.{}".format(node, RBF_SCALE_ATTR))
-    except ValueError:
+    except RuntimeError:
         pass
 
 
