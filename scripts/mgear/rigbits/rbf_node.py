@@ -111,7 +111,25 @@ def copyInverseMirrorAttrs(srcNode, dstNode):
             continue
 
 
-def addDrivenGroup(node):
+def get_driven_group_name(node):
+    """get the name of the driven group that would be created for the
+    provided node
+
+    Args:
+        node (str): name of node
+
+    Returns:
+        str: name of the driven group node
+    """
+    node = pm.PyNode(node)
+    if node.endswith(CTL_SUFFIX):
+        drivenName = node.replace(CTL_SUFFIX, DRIVEN_SUFFIX)
+    else:
+        drivenName = "{}{}".format(node, DRIVEN_SUFFIX)
+    return drivenName
+
+
+def addDrivenGroup(node, drivenName=None):
     """add driven group, pad, above the provided node for direct connection
 
     Args:
@@ -124,10 +142,8 @@ def addDrivenGroup(node):
     parentOfTarget = pm.listRelatives(node, p=True) or None
     if parentOfTarget:
         parentOfTarget = parentOfTarget[0]
-    if node.endswith(CTL_SUFFIX):
-        drivenName = node.replace(CTL_SUFFIX, DRIVEN_SUFFIX)
-    else:
-        drivenName = "{}{}".format(node, DRIVEN_SUFFIX)
+
+    drivenName = drivenName or get_driven_group_name(node)
 
     if parentOfTarget is None:
         parentOfTarget = pm.group(name=drivenName.replace(DRIVEN_SUFFIX,
@@ -655,18 +671,20 @@ class RBFNode(object):
         """
         return str(self.name)
 
-    def nodeType_suffix(self):
+    @staticmethod
+    def nodeType_suffix():
         """optional override with a module/node specific suffix for naming
         """
-        self.nodeType_suffix = GENERIC_SUFFIX
+        return GENERIC_SUFFIX
 
-    def formatName(self):
+    @staticmethod
+    def formatName(name, suffix):
         """standardized the naming of all rbf nodes for consistency
 
         Returns:
             str: name of all supported rbf nodes
         """
-        return "{}{}".format(self.name, self.nodeType_suffix())
+        return "{}{}".format(name, suffix)
 
     def create(self):
         """create an RBF node of type, defined by the subclassed module

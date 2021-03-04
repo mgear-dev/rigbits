@@ -833,7 +833,7 @@ class RBFNode(rbf_node.RBFNode):
         return WD_SUFFIX
 
     def create(self):
-        name = self.formatName()
+        name = self.formatName(self.name, self.nodeType_suffix())
         transformNode, node = createRBF(name)
         self.transformNode = transformNode.name()
         self.name = node.name()

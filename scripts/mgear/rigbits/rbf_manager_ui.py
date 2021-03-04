@@ -69,6 +69,7 @@ import maya.OpenMaya as om
 import maya.OpenMayaUI as mui
 
 # mgear
+import mgear
 from mgear.core import pyqt
 import mgear.core.string as mString
 from mgear.core import anim_utils
@@ -86,11 +87,11 @@ import rbf_node
 # =============================================================================
 # Constants
 # =============================================================================
-__version__ = "1.0"
+__version__ = "1.0.1"
 
-
-TOOL_NAME = "RBF Manager UI"
-TOOL_TITLE = "{} v{}".format(TOOL_NAME, __version__)
+_mgear_version = mgear.getVersion()
+TOOL_NAME = "RBF Manager"
+TOOL_TITLE = "{} v{} | mGear {}".format(TOOL_NAME, __version__, _mgear_version)
 
 DRIVEN_SUFFIX = rbf_node.DRIVEN_SUFFIX
 CTL_SUFFIX = rbf_node.CTL_SUFFIX
@@ -142,6 +143,24 @@ def getPlugAttrs(nodes, attrType="all"):
             continue
         [plugAttrs.append("{}.{}".format(node, a)) for a in attrs]
     return plugAttrs
+
+
+def existing_rbf_setup(node):
+    """check if there is an existing rbf setup associated with the node
+
+    Args:
+        node (str): name of the node to query
+
+    Returns:
+        list: of the rbftype assiociated with the node
+    """
+    connected_nodes = mc.listConnections(node,
+                                         destination=True,
+                                         shapes=True,
+                                         scn=True) or []
+    connected_node_types = set(mc.nodeType(x) for x in connected_nodes)
+    rbf_node_types = set(rbf_io.RBF_MODULES.keys())
+    return list(connected_node_types.intersection(rbf_node_types))
 
 
 def sortRBF(name, rbfType=None):
@@ -640,12 +659,23 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             genericWarning(self, "Select Node to be driven!")
             return
         drivenNode = drivenNode[0]
-        drivenNodeType = mc.nodeType(drivenNode)
+        drivenType = mc.nodeType(drivenNode)
         # smart display all when needed
-        if drivenNodeType in ["transform", "joint"]:
+        if drivenType in ["transform", "joint"]:
             attrType = "keyable"
         else:
             attrType = "all"
+
+        drivenNode_name = drivenNode
+        if drivenType in ["transform", "joint"]:
+            drivenNode_name = rbf_node.get_driven_group_name(drivenNode)
+
+        # check if there is an existing rbf node attached
+        if existing_rbf_setup(drivenNode_name):
+            msg = "Node is already driven by an RBF Setup."
+            genericWarning(self, msg)
+            return
+
         availableAttrs = getPlugAttrs([drivenNode], attrType=attrType)
         setupName, rbfType = self.getSelectedSetup()
         # if a setup has already been named or starting new
@@ -659,7 +689,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         if not drivenAttrs:
             return
         parentNode = False
-        drivenType = mc.nodeType(drivenNode)
+
         if drivenType in ["transform", "joint"]:
             parentNode = True
             drivenNode = rbf_node.addDrivenGroup(drivenNode)
