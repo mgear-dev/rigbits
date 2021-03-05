@@ -498,14 +498,17 @@ def recallDriverControlPose(driverControl, poseInfo, index):
         poseInfo (dict): of poses
         index (int): poseInfo[attrName]:[index]
     """
+    failed_attrs = []
     for attr, values in poseInfo.iteritems():
         try:
             # not to be bothered with locked, hidden, connected attrs
             mc.setAttr("{}.{}".format(driverControl, attr), values[index])
         except Exception:
-            pm.displayWarning(
-                "Pose can't be recalled for {}".format(driverControl))
-            pass
+            failed_attrs.append(attr)
+    if failed_attrs:
+        failed_attrs.insert(0, driverControl)
+        msg = "Pose cannot be applied to the following attributes: \n{}".format(failed_attrs)
+        print(msg)
 
 
 def createDriverControlAttr(node):
