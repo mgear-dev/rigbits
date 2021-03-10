@@ -87,7 +87,7 @@ import rbf_node
 # =============================================================================
 # Constants
 # =============================================================================
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 _mgear_version = mgear.getVersion()
 TOOL_NAME = "RBF Manager"
@@ -671,10 +671,11 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             drivenNode_name = rbf_node.get_driven_group_name(drivenNode)
 
         # check if there is an existing rbf node attached
-        if existing_rbf_setup(drivenNode_name):
-            msg = "Node is already driven by an RBF Setup."
-            genericWarning(self, msg)
-            return
+        if mc.objExists(drivenNode_name):
+            if existing_rbf_setup(drivenNode_name):
+                msg = "Node is already driven by an RBF Setup."
+                genericWarning(self, msg)
+                return
 
         availableAttrs = getPlugAttrs([drivenNode], attrType=attrType)
         setupName, rbfType = self.getSelectedSetup()
