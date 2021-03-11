@@ -277,7 +277,8 @@ def rig(edge_loop,
             return
     else:
         # ctl_parent_R = brow_jnt_R
-        ctl_parent_R = brows_
+        ctl_parent_R = brows_root
+        parent_tag_R = None
 
     if ctl_parent_C:
         try:
