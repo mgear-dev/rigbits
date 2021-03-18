@@ -1,6 +1,4 @@
-"""Rigbits brow rigger tool"""
-"""Based on Rigbits lips rigger tool"""
-""" Brow rigger test -> Rabidrat.pl Krzysztof Marcinowski"""
+# Original design Krzysztof Marcinowski
 import json
 from functools import partial
 
@@ -243,7 +241,7 @@ def rig(edge_loop,
     brows_root = primitive.addTransform(None,
                                         setName("root", rootSide))
     browsCrv_root = primitive.addTransform(brows_root,
-                                           setName("crvs", rootSide))
+                                           setName("crvs", "main"))
     browsHooks_root = primitive.addTransform(brows_root,
                                              setName("hooks", rootSide))
     browsRope_root = primitive.addTransform(brows_root,
@@ -312,6 +310,7 @@ def rig(edge_loop,
     #####################
     # Groups
     #####################
+    # TODO: the set name should not be hardcoded to "rig" name
     try:
         ctlSet = pm.PyNode("rig_controllers_grp")
     except pm.MayaNodeError:
@@ -358,10 +357,13 @@ def rig(edge_loop,
     #################################
     for side, loop in edge_loops.items():
 
+        browsCrv_side_root = primitive.addTransform(browsCrv_root,
+                                                    setName("crvs", side))
+
         # create poly based curve for each part
         mainCurve = curve.createCuveFromEdges(loop,
                                               setName("main_crv", side),
-                                              parent=browsCrv_root)
+                                              parent=browsCrv_side_root)
         # collect main poly based curve
         mainCurves.append(mainCurve)
         rigCurves.append(mainCurve)
@@ -674,7 +676,7 @@ def rig(edge_loop,
 
             if controlStatus == 0:  # main controls
                 mainCtlCurve = helpers.addCnsCurve(
-                    browsCrv_root,
+                    browsCrv_side_root,
                     setName("mainCtl_crv", side),
                     localCtlList,
                     crv_degree)
@@ -685,7 +687,7 @@ def rig(edge_loop,
                 if secondary_ctl_check:
                     if side in secSideRange:
                         mainCtlUpv = helpers.addCurve(
-                            browsCrv_root,
+                            browsCrv_side_root,
                             setName("mainCtl_upv", side),
                             localCtlList,
                             crv_degree)
@@ -707,19 +709,34 @@ def rig(edge_loop,
             if controlStatus == 1:
                 if side in secSideRange:
                     secondaryCtlCurve = helpers.addCnsCurve(
-                        browsCrv_root,
+                        browsCrv_side_root,
                         setName("secCtl_crv", side),
                         localSecCtlList,
                         crv_degree)
                     secondaryCurves.append(secondaryCtlCurve[0])
                     rigCurves.append(secondaryCtlCurve[0])
 
+        # Constrain curves roots
+        ctl_parent = None
+        if side == "C":
+            ctl_parent = ctl_parent_C
+        elif side == "L":
+            ctl_parent = ctl_parent_L
+        elif side == "R":
+            ctl_parent = ctl_parent_R
+
+        if ctl_parent:
+            constraints.matrixConstraint(ctl_parent,
+                                         browsCrv_side_root,
+                                         'srt',
+                                         True)
+
         # create upvector / rope curves
         mainRope = curve.createCurveFromCurve(
             mainCurve,
             setName("mainRope", side),
             nbPoints=NB_ROPE,
-            parent=browsCrv_root)
+            parent=browsCrv_side_root)
 
         rigCurves.append(mainRope)
         mainRopes.append(mainRope)
@@ -728,7 +745,7 @@ def rig(edge_loop,
             mainCurve,
             setName("mainRope_upv", side),
             nbPoints=NB_ROPE,
-            parent=browsCrv_root)
+            parent=browsCrv_side_root)
 
         rigCurves.append(mainRope_upv)
         mainRopeUpvs.append(mainRope_upv)
@@ -737,7 +754,7 @@ def rig(edge_loop,
             mainCurve,
             setName("mainCrv_upv", side),
             nbPoints=7,
-            parent=browsCrv_root)
+            parent=browsCrv_side_root)
 
         rigCurves.append(mainCrv_upv)
         mainCurveUpvs.append(mainCrv_upv)
@@ -967,6 +984,21 @@ def rig(edge_loop,
                 pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
                                cns.attr("worldUpMatrix"))
 
+                # connect scaling
+                ctl_parent = None
+                if side == "C":
+                    ctl_parent = ctl_parent_C
+                elif side == "L":
+                    ctl_parent = ctl_parent_L
+                elif side == "R":
+                    ctl_parent = ctl_parent_R
+
+                if ctl_parent:
+                    constraints.matrixConstraint(ctl_parent,
+                                                 oTrans,
+                                                 's',
+                                                 True)
+
                 # connect secondary control to oTrans hook.
                 constraints.matrixConstraint(
                     oTrans,
@@ -1052,8 +1084,24 @@ def rig(edge_loop,
                            cns.attr("worldUpMatrix"))
 
             jnt = rigbits.addJnt(oTrans, noReplace=True, parent=browJoint)
+            jnt.segmentScaleCompensate.set(0)
             allJoints.append(jnt)
             pm.sets(defset, add=jnt)
+
+            # connect scaling
+            ctl_parent = None
+            if side == "C":
+                ctl_parent = ctl_parent_C
+            elif side == "L":
+                ctl_parent = ctl_parent_L
+            elif side == "R":
+                ctl_parent = ctl_parent_R
+
+            if ctl_parent:
+                constraints.matrixConstraint(ctl_parent,
+                                             oTrans,
+                                             's',
+                                             True)
 
     for crv in mainCurves:
         pm.delete(crv)
@@ -1288,11 +1336,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.brow_jnt_R_button = QtWidgets.QPushButton("<<")
 
         # ctl parents
-        self.ctl_parent_C_label = QtWidgets.QLabel("Main Central control:")
+        self.ctl_parent_C_label = QtWidgets.QLabel("Head control:")
         self.ctl_parent_C = QtWidgets.QLineEdit()
         self.ctl_parent_C_button = QtWidgets.QPushButton("<<")
 
-        self.ctl_parent_L_label = QtWidgets.QLabel("Left control:")
+        self.ctl_parent_L_label = QtWidgets.QLabel("Left or Central control:")
         self.ctl_parent_L = QtWidgets.QLineEdit()
         self.ctl_parent_L_button = QtWidgets.QPushButton("<<")
 
@@ -1585,6 +1633,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         lineEdit.setText(lib.get_edge_loop_from_selection())
 
     def build_rig(self):
+        print lib.get_settings_from_widget(self)
         rig(**lib.get_settings_from_widget(self))
 
     def export_settings(self):
