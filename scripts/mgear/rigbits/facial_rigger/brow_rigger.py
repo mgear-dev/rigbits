@@ -881,15 +881,18 @@ def rig(edge_loop,
         if ctl_side is "L":
             pm.parent(t_inL.getParent(2), c_inL)
             pm.parent(t_outL.getParent(2), c_outL)
+            ctl_parent = ctl_parent_L
         if ctl_side is "R":
             pm.parent(t_inR.getParent(2), c_inR)
             pm.parent(t_outR.getParent(2), c_outR)
+            ctl_parent = ctl_parent_R
         if ctl_side is "C":
             pm.parent(t_outR.getParent(2), c_outR)
             pm.parent(t_outL.getParent(2), c_outL)
+            ctl_parent = ctl_parent_C
         for ctl in mainControls:
             if "_tangent" not in ctl.name():
-                pm.parent(ctl.getParent(2), ctl_parent_L)
+                pm.parent(ctl.getParent(2), ctl_parent)
 
     # Attach secondary controls to main curve
     if secondary_ctl_check:
@@ -933,7 +936,7 @@ def rig(edge_loop,
             secControlsMerged.append(secondaryControls)
 
             for secCtl in secondaryControls:
-                constraints.matrixConstraint(ctl_parent_L,
+                constraints.matrixConstraint(ctl_parent,
                                              secCtl.getParent(2),
                                              'rs',
                                              True)
@@ -1336,11 +1339,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.brow_jnt_R_button = QtWidgets.QPushButton("<<")
 
         # ctl parents
-        self.ctl_parent_C_label = QtWidgets.QLabel("Head control:")
+        self.ctl_parent_C_label = QtWidgets.QLabel("Head/Central control:")
         self.ctl_parent_C = QtWidgets.QLineEdit()
         self.ctl_parent_C_button = QtWidgets.QPushButton("<<")
 
-        self.ctl_parent_L_label = QtWidgets.QLabel("Left or Central control:")
+        self.ctl_parent_L_label = QtWidgets.QLabel("Left control:")
         self.ctl_parent_L = QtWidgets.QLineEdit()
         self.ctl_parent_L_button = QtWidgets.QPushButton("<<")
 
@@ -1553,6 +1556,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_button.clicked.connect(self.export_settings)
 
     def setSymmetryLayout(self, value):
+        self.setSideControls(value)
         if value == "Off":
             self.side.setHidden(False)
             self.side_label.setHidden(False)
@@ -1586,21 +1590,49 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def setSideControls(self, value):
 
-        if self.side.currentText() == "R":
+        if value == "On":
+            self.ctl_parent_R_label.setHidden(False)
+            self.ctl_parent_R.setHidden(False)
+            self.ctl_parent_R_button.setHidden(False)
+            self.ctl_parent_L_label.setHidden(False)
+            self.ctl_parent_L.setHidden(False)
+            self.ctl_parent_L_button.setHidden(False)
+            self.ctl_parent_C_label.setHidden(False)
+            self.ctl_parent_C.setHidden(False)
+            self.ctl_parent_C_button.setHidden(False)
+
+        elif self.side.currentText() == "R":
             self.ctl_parent_R_label.setHidden(False)
             self.ctl_parent_R.setHidden(False)
             self.ctl_parent_R_button.setHidden(False)
             self.ctl_parent_L_label.setHidden(True)
             self.ctl_parent_L.setHidden(True)
             self.ctl_parent_L_button.setHidden(True)
+            self.ctl_parent_C_label.setHidden(True)
+            self.ctl_parent_C.setHidden(True)
+            self.ctl_parent_C_button.setHidden(True)
 
-        else:
+        elif self.side.currentText() == "L":
             self.ctl_parent_R_label.setHidden(True)
             self.ctl_parent_R.setHidden(True)
             self.ctl_parent_R_button.setHidden(True)
             self.ctl_parent_L_label.setHidden(False)
             self.ctl_parent_L.setHidden(False)
             self.ctl_parent_L_button.setHidden(False)
+            self.ctl_parent_C_label.setHidden(True)
+            self.ctl_parent_C.setHidden(True)
+            self.ctl_parent_C_button.setHidden(True)
+
+        elif self.side.currentText() == "C":
+            self.ctl_parent_R_label.setHidden(True)
+            self.ctl_parent_R.setHidden(True)
+            self.ctl_parent_R_button.setHidden(True)
+            self.ctl_parent_L_label.setHidden(True)
+            self.ctl_parent_L.setHidden(True)
+            self.ctl_parent_L_button.setHidden(True)
+            self.ctl_parent_C_label.setHidden(False)
+            self.ctl_parent_C.setHidden(False)
+            self.ctl_parent_C_button.setHidden(False)
 
     def setSecondaryControls(self, value):
         if value == 0:
@@ -1633,7 +1665,6 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         lineEdit.setText(lib.get_edge_loop_from_selection())
 
     def build_rig(self):
-        print lib.get_settings_from_widget(self)
         rig(**lib.get_settings_from_widget(self))
 
     def export_settings(self):
