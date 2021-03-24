@@ -150,7 +150,9 @@ def addJnt(obj=False,
                 jntName = "_".join(obj.name().split("_")) + "_jnt"
             else:
                 jntName = "_".join(obj.name().split("_")[:-1]) + "_jnt"
-        jnt = pm.createNode("joint", n=jntName)
+        jnt = primitive.addJoint(oParent,
+                                 jntName,
+                                 transform.getTransform(obj))
 
         if grp:
             grp.add(jnt)
@@ -163,11 +165,18 @@ def addJnt(obj=False,
                 defSet = pm.PyNode("rig_deformers_grp")
                 pm.sets(defSet, add=jnt)
 
-        oParent.addChild(jnt)
-
+        jnt.setAttr("segmentScaleCompensate", False)
         jnt.setAttr("jointOrient", 0, 0, 0)
         try:
-            applyop.gear_matrix_cns(obj, jnt)
+            cns_m = applyop.gear_matrix_cns(obj, jnt)
+            # setting the joint orient compensation in order to have clean
+            # rotation channels
+            m = cns_m.drivenRestMatrix.get()
+            tm = datatypes.TransformationMatrix(m)
+            r = datatypes.degrees(tm.getRotation())
+            jnt.attr("jointOrientX").set(r[0])
+            jnt.attr("jointOrientY").set(r[1])
+            jnt.attr("jointOrientZ").set(r[2])
         except RuntimeError:
             for axis in ["tx", "ty", "tz", "rx", "ry", "rz"]:
                 jnt.attr(axis).set(0.0)

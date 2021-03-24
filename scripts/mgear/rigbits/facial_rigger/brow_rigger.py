@@ -1085,7 +1085,6 @@ def rig(edge_loop,
 
             pm.connectAttr(oTransUpV.attr("worldMatrix[0]"),
                            cns.attr("worldUpMatrix"))
-
             jnt = rigbits.addJnt(oTrans, noReplace=True, parent=browJoint)
             jnt.segmentScaleCompensate.set(0)
             allJoints.append(jnt)
