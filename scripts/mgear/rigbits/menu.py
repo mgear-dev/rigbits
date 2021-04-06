@@ -122,7 +122,7 @@ def _ctl_submenu(parent_menu_id, name, cCtl=False):
     commands = []
     for c in ctls:
         cm = string.removeInvalidCharacter(c).lower()
-        commands.append([c, "rigbits.createCTL('{0}', {1})".format(cm,
+        commands.append([c, "from mgear import rigbits\nrigbits.createCTL('{0}', {1})".format(cm,
                                                                    str(cCtl))])
     mgear.menu.install(name, commands, parent_menu_id)
 
