@@ -729,6 +729,7 @@ def createRBFFromInfo(weightNodeInfo_dict):
         list: of all created weightDriver nodes
     """
     createdNodes = []
+    skipped_nodes = []
     weightNodeInfo_dict = copy.deepcopy(weightNodeInfo_dict)
     for weightNodeName, weightInfo in weightNodeInfo_dict.iteritems():
         rbfType = weightInfo.pop("rbfType", RBF_TYPE)
@@ -749,6 +750,11 @@ def createRBFFromInfo(weightNodeInfo_dict):
         driverControl = weightInfo.pop("driverControl", "")
         driverControlPoseInfo = weightInfo.pop(rbf_node.DRIVER_POSES_INFO_ATTR,
                                                {})
+
+        if not mc.objExists(drivenControlName):
+            skipped_nodes.append(drivenControlName)
+            continue
+
         transformNode, node = createRBF(weightNodeName,
                                         transformName=transformName)
         rbf_node.setSetupName(node.name(), setupName)
@@ -774,6 +780,9 @@ def createRBFFromInfo(weightNodeInfo_dict):
         rbf_node.setDriverControlPoseAttr(node.name(), driverControlPoseInfo)
         recreateConnections(connectionsInfo)
         createdNodes.append(node.name())
+
+    if skipped_nodes:
+        mc.warning("RBF Nodes were skipped due to missing controls! \n {}".format(skipped_nodes))
     return createdNodes
 
 
