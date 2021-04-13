@@ -2,7 +2,6 @@ import pymel.core as pm
 from pymel.core import datatypes
 from pymel import util as pmu
 
-
 import mgear
 from mgear.core import icon, applyop, node, transform, attribute
 from mgear.core import primitive, meshNavigation, string
@@ -295,7 +294,7 @@ def connectWorldTransform(source, target):
 
 
 def connectLocalTransform(objects=None, s=True, r=True, t=True, *args):
-    """Connect scale, rotatio and translation.
+    """Connect scale, rotation and translation.
 
     Args:
         objects (None or list of dagNode, optional): If None will use the
@@ -350,16 +349,16 @@ def connectUserDefinedChannels(source, targets):
 
 
 def connectInvertSRT(source, target, srt="srt", axis="xyz"):
-    """Connect the locat transformations with inverted values.
+    """Connect the local transformations with inverted values.
 
     Args:
         source (dagNode): The source driver dagNode
         target (dagNode): The target driven dagNode
         srt (string, optional): String value for the scale(s), rotate(r),
-            translation(t). Default value is "srt". Posible values "s", "r",
+            translation(t). Default value is "srt". Possible values "s", "r",
             "t" or any combination
         axis (string, optional):  String value for the axis. Default
-            value is "xyz". Posible values "x", "y", "z" or any combination
+            value is "xyz". Possible values "x", "y", "z" or any combination
     """
     for t in srt:
         soureList = []
@@ -405,7 +404,7 @@ def replaceShape(source=None, targets=None, *args):
         if shape:
             cnx = shape[0].listConnections(plugs=True, c=True)
             cnx = [[c[1], c[0].shortName()] for c in cnx]
-            # Disconnect the conexion before delete the old shape
+            # Disconnect the connection before delete the old shape
             for s in shape:
                 for c in s.listConnections(plugs=True, c=True):
                     pm.disconnectAttr(c[0])
@@ -422,9 +421,9 @@ def replaceShape(source=None, targets=None, *args):
 
 
 def matchPosfromBBox(*args):
-    """Match the position usin bounding box of another object another.
+    """Match the position using bounding box of another object another.
 
-    Match the position of one object, using the boundig box center of
+    Match the position of one object, using the bounding box center of
     another object.
 
     """
@@ -491,7 +490,7 @@ def createInterpolateTransform(objects=None, blend=.5, *args):
         *args: Maya's dummy
 
     Returns:
-        pyNode: The new transformation witht the interpolate matrix o_node
+        pyNode: The new transformation with the interpolate matrix o_node
         applied.
 
     """
