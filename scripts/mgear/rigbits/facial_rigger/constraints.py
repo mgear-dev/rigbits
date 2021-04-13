@@ -142,7 +142,8 @@ def matrixBlendConstraint(parent=None,  # should be a list
                              keyable=True,
                              attributeType='float',
                              min=0.0,
-                             max=1.0)
+                             max=1.0,
+                             defaultValue=weights[x])
                 pm.connectAttr(host + "." + name,
                                wtMat_node + ".wtMatrix[{}].weightIn".format(x))
                 pm.setAttr(host + "." + name, weights[x])
