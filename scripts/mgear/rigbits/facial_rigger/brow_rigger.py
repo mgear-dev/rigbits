@@ -116,18 +116,19 @@ def rig(edge_loop,
             r_inner = r_Loop[-1]
 
         # center segment
+        # TODO: this does not always work depending geometry
         mid_loop = pm.polySelect(
             geoTransform,
             edgeLoopPath=(l_inner.indices()[0],
                           r_inner.indices()[0]),
             ass=True,
             ns=True)
-        mid_loop_len = len(mid_loop)
         if not mid_loop:
             pm.displayError(
-                "Mid loop can't be traced. Provably the topology"
+                "Mid loop can't be traced. Probably the topology"
                 " have a vertex with 5 edges or more in the loop")
             return
+        mid_loop_len = len(mid_loop)
         c_Loop = [pm.PyNode(e) for e in mid_loop
                   if pm.PyNode(e) not in l_Loop and pm.PyNode(e) not in r_Loop]
         edge_loops = dict(zip(["L", "R", "C"], [l_Loop, r_Loop, c_Loop]))
