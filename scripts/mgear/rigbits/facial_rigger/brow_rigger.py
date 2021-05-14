@@ -764,7 +764,7 @@ def rig(edge_loop,
         for crv in [mainRope_upv, mainCrv_upv]:
             cvs = crv.getCVs(space="world")
             for i, cv in enumerate(cvs):
-                # we populate the closest vertext list here to skipt the first
+                # we populate the closest vertext list here to skip the first
                 # and latest point
                 offset = [cv[0], cv[1], cv[2] + FRONT_OFFSET]
                 crv.setCV(i, offset, space='world')
@@ -785,7 +785,7 @@ def rig(edge_loop,
             pm.displayWarning("The brow rig can not be parent to: %s. Maybe "
                               "this object doesn't exist." % parent_node)
 
-    # Reparent controls
+    # Re-parent controls
     # TODO: this can be more simple an easy to read
     for ctl in mainControls:
         tag_parent = None
