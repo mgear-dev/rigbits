@@ -17,7 +17,7 @@ from mgear import rigbits
 from . import lib
 
 # TODO: change deformers_group to static_rig_parent
-# for the moment we keep this for backwards compativility with
+# for the moment we keep this for backwards compatibility with
 # old configuration files
 ##########################################################
 # Eye rig constructor
@@ -46,7 +46,9 @@ def rig(eyeMesh=None,
         lowerVTrack=0.02,
         lowerHTrack=0.01,
         aim_controller="",
-        deformers_group=""):
+        deformers_group="",
+        mult10=False,
+        ):
     """Create eyelid and eye rig
 
     Args:
@@ -414,7 +416,7 @@ def rig(eyeMesh=None,
                                      t)
         npoBase = npo
         if i == 2:
-            # we add an extra level to input the tracking ofset values
+            # we add an extra level to input the tracking offset values
             npo = primitive.addTransform(npo,
                                          setName("%s_trk" % upperCtlNames[i]),
                                          t)
@@ -704,13 +706,23 @@ def rig(eyeMesh=None,
 
     # Channels
     # Adding and connecting attributes for the blinks
+    # TODO: we should set the maxValue to 10 for more precise control
+    # Also it would be nice to have negative. To open eyes even more.
     up_ctl = upControls[2]
-    blink_att = attribute.addAttribute(
-        over_ctl, "blink", "float", 0, minValue=0, maxValue=1)
-    blinkUpper_att = attribute.addAttribute(
-        over_ctl, "upperBlink", "float", 0, minValue=0, maxValue=1)
-    blinkLower_att = attribute.addAttribute(
-        over_ctl, "lowerBlink", "float", 0, minValue=0, maxValue=1)
+    if mult10:
+        blink_att = attribute.addAttribute(
+            over_ctl, "blink", "float", 0, minValue=-10, maxValue=10)
+        blinkUpper_att = attribute.addAttribute(
+            over_ctl, "upperBlink", "float", 0, minValue=-10, maxValue=10)
+        blinkLower_att = attribute.addAttribute(
+            over_ctl, "lowerBlink", "float", 0, minValue=-10, maxValue=10)
+    else:
+        blink_att = attribute.addAttribute(
+            over_ctl, "blink", "float", 0, minValue=0, maxValue=1)
+        blinkUpper_att = attribute.addAttribute(
+            over_ctl, "upperBlink", "float", 0, minValue=0, maxValue=1)
+        blinkLower_att = attribute.addAttribute(
+            over_ctl, "lowerBlink", "float", 0, minValue=-0, maxValue=1)
     blinkMult_att = attribute.addAttribute(
         over_ctl, "blinkMult", "float", 1, minValue=1, maxValue=2)
     midBlinkH_att = attribute.addAttribute(
@@ -720,8 +732,16 @@ def rig(eyeMesh=None,
     # But also clamp them so using both doesn't exceed 1.0
     blinkAdd = pm.createNode('plusMinusAverage')
     blinkClamp = pm.createNode('clamp')
-    blinkClamp.maxR.set(1.0)
-    blinkClamp.maxG.set(1.0)
+    if mult10:
+        blinkClamp.maxR.set(10.0)
+        blinkClamp.maxG.set(10.0)
+        blinkClamp.minR.set(-10.0)
+        blinkClamp.minG.set(-10.0)
+
+    else:
+        blinkClamp.maxR.set(1.0)
+        blinkClamp.maxG.set(1.0)
+
     blink_att.connect(blinkAdd.input2D[0].input2Dx)
     blink_att.connect(blinkAdd.input2D[0].input2Dy)
     blinkUpper_att.connect(blinkAdd.input2D[1].input2Dx)
@@ -732,10 +752,21 @@ def rig(eyeMesh=None,
     # Drive the clamped blinks through blinkMult, then to the blendshapes
     mult_node = node.createMulNode(blinkClamp.outputR, blinkMult_att)
     mult_nodeLower = node.createMulNode(blinkClamp.outputG, blinkMult_att)
-    pm.connectAttr(mult_node + ".outputX",
-                   bs_upBlink[0].attr(midTarget.name()))
-    pm.connectAttr(mult_nodeLower + ".outputX",
-                   bs_lowBlink[0].attr(midTargetLower.name()))
+    # add mult 0.1 to have more precise control
+    if mult10:
+        mult_nodeUpper_perc = node.createMulNode(mult_node.outputX, 0.1)
+        mult_nodeLower_perc = node.createMulNode(mult_nodeLower.outputX, 0.1)
+        pm.connectAttr(mult_nodeUpper_perc + ".outputX",
+                    bs_upBlink[0].attr(midTarget.name()))
+        pm.connectAttr(mult_nodeLower_perc + ".outputX",
+                    bs_lowBlink[0].attr(midTargetLower.name()))
+    else:
+        pm.connectAttr(mult_node + ".outputX",
+                    bs_upBlink[0].attr(midTarget.name()))
+        pm.connectAttr(mult_nodeLower + ".outputX",
+                    bs_lowBlink[0].attr(midTargetLower.name()))
+
+
     pm.connectAttr(midBlinkH_att, bs_mid[0].attr(upTarget.name()))
     pm.connectAttr(midBlinkH_att, bs_midLower[0].attr(upTarget.name()))
 
@@ -1052,6 +1083,9 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.deformers_group_label = QtWidgets.QLabel("Static Rig Parent:")
         self.deformers_group = QtWidgets.QLineEdit()
         self.deformers_group_button = QtWidgets.QPushButton("<<")
+        self.mult10 = QtWidgets.QCheckBox(
+            "Use rang 0-10 for more precise control")
+        self.sideRange.setChecked(False)
 
         # Main buttons
         self.build_button = QtWidgets.QPushButton("Build Eye Rig")
@@ -1177,6 +1211,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         options_layout.addWidget(self.blinkHeight_group)
         options_layout.addWidget(self.tracking_group)
         options_layout.addWidget(self.sideRange)
+        options_layout.addWidget(self.mult10)
         options_layout.addLayout(ctlSet_layout)
         options_layout.addLayout(deformersGrp_layout)
         self.options_group.setLayout(options_layout)
