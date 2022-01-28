@@ -23,6 +23,8 @@ from . import lib
 def rig(edge_loop="",
         up_vertex="",
         low_vertex="",
+        left_vertex="",
+        right_vertex="",
         name_prefix="",
         thickness=0.3,
         do_skin=True,
@@ -149,22 +151,30 @@ def rig(edge_loop="",
     # Curves creation
     #####################
 
-    # get extreme position using the outer loop
+    # Analyze edge loop to find corners automatically
     extr_v = meshNavigation.getExtremeVertexFromLoop(edge_loop)
-    upPos = extr_v[0]
-    lowPos = extr_v[1]
-    inPos = extr_v[2]
-    outPos = extr_v[3]
+    rightPos = extr_v[2]
+    leftPos = extr_v[3]
     edgeList = extr_v[4]
     vertexList = extr_v[5]
     upPos = up_vertex
     lowPos = low_vertex
 
+    # If left and right are given use those instead
+    try:
+        rightPos = pm.PyNode(right_vertex)
+        leftPos = pm.PyNode(left_vertex)
+    except pm.MayaNodeError:
+        # Left and right not specified
+        pass
+
     # upper crv
-    upLip_edgeRange = meshNavigation.edgeRangeInLoopFromMid(edgeList,
-                                                            upPos,
-                                                            inPos,
-                                                            outPos)
+    upLip_edgeRange = meshNavigation.edgeLoopBetweenVertices(rightPos, upPos)
+    upLip_edgeRange += meshNavigation.edgeLoopBetweenVertices(upPos, leftPos)
+    if not upLip_edgeRange:
+        print("Corner verts not on edge loop!")
+        return
+
     upCrv = curve.createCuveFromEdges(upLip_edgeRange,
                                       setName("upperLip"),
                                       parent=lipsCrv_root)
@@ -186,10 +196,8 @@ def rig(edge_loop="",
         upCrv.setCV(i, offset, space='world')
 
     # lower crv
-    lowLip_edgeRange = meshNavigation.edgeRangeInLoopFromMid(edgeList,
-                                                             lowPos,
-                                                             inPos,
-                                                             outPos)
+    lowLip_edgeRange = meshNavigation.edgeLoopBetweenVertices(rightPos, lowPos)
+    lowLip_edgeRange += meshNavigation.edgeLoopBetweenVertices(lowPos, leftPos)
     lowCrv = curve.createCuveFromEdges(lowLip_edgeRange,
                                        setName("lowerLip"),
                                        parent=lipsCrv_root)
@@ -205,8 +213,8 @@ def rig(edge_loop="",
         elif i == len(cvs) - 1:
             offset = [cv[0] + thickness, cv[1], cv[2] - thickness]
         else:
-            # we populate the closest vertext list here to skipt the first
-            # and latest point
+            # we populate the closest vertex list here to skip the first
+            # and last point
             offset = [cv[0], cv[1] - thickness, cv[2]]
         lowCrv.setCV(i, offset, space='world')
 
@@ -248,13 +256,18 @@ def rig(edge_loop="",
 
     # offset upv curves
 
-    for crv in [upCrv_upv, lowCrv_upv, upRope_upv, lowRope_upv]:
+    for crv in [upCrv_upv, upRope_upv]:
         cvs = crv.getCVs(space="world")
         for i, cv in enumerate(cvs):
-
             # we populate the closest vertext list here to skipt the first
             # and latest point
-            offset = [cv[0], cv[1], cv[2] + FRONT_OFFSET]
+            offset = [cv[0], cv[1] + FRONT_OFFSET, cv[2]]
+            crv.setCV(i, offset, space='world')
+
+    for crv in [lowCrv_upv, lowRope_upv]:
+        cvs = crv.getCVs(space="world")
+        for i, cv in enumerate(cvs):
+            offset = [cv[0], cv[1] - FRONT_OFFSET, cv[2]]
             crv.setCV(i, offset, space='world')
 
     rigCrvs = [upCrv,
@@ -667,22 +680,22 @@ def rig(edge_loop="",
                 parent_node = pm.PyNode(parent_node)
             parent_node.addChild(lips_root)
         except pm.MayaNodeError:
-            pm.displayWarning("The Lips rig can not be parent to: %s. Maybe "
-                              "this object doesn't exist." % parent_node)
+            pm.displayWarning("The Lips rig cannot be parented to: %s. Maybe"
+                              " this object doesn't exist?" % parent_node)
     if head_joint and jaw_joint:
         try:
             if isinstance(head_joint, basestring):
                 head_joint = pm.PyNode(head_joint)
         except pm.MayaNodeError:
-            pm.displayWarning("Head Joint or Upper Lip Joint %s. Can not be "
-                              "fount in the scene" % head_joint)
+            pm.displayWarning("Head Joint or Upper Lip Joint %s cannot be "
+                              "found in the scene." % head_joint)
             return
         try:
             if isinstance(jaw_joint, basestring):
                 jaw_joint = pm.PyNode(jaw_joint)
         except pm.MayaNodeError:
-            pm.displayWarning("Jaw Joint or Lower Lip Joint %s. Can not be "
-                              "fount in the scene" % jaw_joint)
+            pm.displayWarning("Jaw Joint or Lower Lip Joint %s cannot be "
+                              "found in the scene." % jaw_joint)
             return
 
         ref_ctls = [head_joint, jaw_joint]
@@ -692,15 +705,15 @@ def rig(edge_loop="",
                 if isinstance(upper_lip_ctl, basestring):
                     upper_lip_ctl = pm.PyNode(upper_lip_ctl)
             except pm.MayaNodeError:
-                pm.displayWarning("Upper Lip Ctl %s. Can not be "
-                                  "fount in the scene" % upper_lip_ctl)
+                pm.displayWarning("Upper Lip Ctl %s cannot be "
+                                  "found in the scene." % upper_lip_ctl)
                 return
             try:
                 if isinstance(lower_lip_ctl, basestring):
                     lower_lip_ctl = pm.PyNode(lower_lip_ctl)
             except pm.MayaNodeError:
-                pm.displayWarning("Lower Lip Ctl %s. Can not be "
-                                  "fount in the scene" % lower_lip_ctl)
+                pm.displayWarning("Lower Lip Ctl %s cannot be "
+                                  "found in the scene." % lower_lip_ctl)
                 return
             ref_ctls = [upper_lip_ctl, lower_lip_ctl]
 
@@ -853,7 +866,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Geometry input controls
         self.geometryInput_group = QtWidgets.QGroupBox("Geometry Input")
-        self.edgedge_loop_label = QtWidgets.QLabel("Edge Loop:")
+        self.edge_loop_label = QtWidgets.QLabel("Edge Loop:")
         self.edge_loop = QtWidgets.QLineEdit()
         self.edge_loop_button = QtWidgets.QPushButton("<<")
         self.up_vertex_label = QtWidgets.QLabel("Upper Vertex:")
@@ -862,6 +875,12 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.low_vertex_label = QtWidgets.QLabel("Lower Vertex:")
         self.low_vertex = QtWidgets.QLineEdit()
         self.low_vertex_button = QtWidgets.QPushButton("<<")
+        self.left_vertex_label = QtWidgets.QLabel("Left Vertex (optional):")
+        self.left_vertex = QtWidgets.QLineEdit()
+        self.left_vertex_button = QtWidgets.QPushButton("<<")
+        self.right_vertex_label = QtWidgets.QLabel("Right Vertex (optional):")
+        self.right_vertex = QtWidgets.QLineEdit()
+        self.right_vertex_button = QtWidgets.QPushButton("<<")
 
         # Name prefix
         self.prefix_group = QtWidgets.QGroupBox("Name Prefix")
@@ -927,32 +946,48 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_layout(self):
 
         # Edge Loop Layout
-        edgedge_loop_layout = QtWidgets.QHBoxLayout()
-        edgedge_loop_layout.setContentsMargins(1, 1, 1, 1)
-        edgedge_loop_layout.addWidget(self.edgedge_loop_label)
-        edgedge_loop_layout.addWidget(self.edge_loop)
-        edgedge_loop_layout.addWidget(self.edge_loop_button)
+        edge_loop_layout = QtWidgets.QHBoxLayout()
+        edge_loop_layout.setContentsMargins(1, 1, 1, 1)
+        edge_loop_layout.addWidget(self.edge_loop_label)
+        edge_loop_layout.addWidget(self.edge_loop)
+        edge_loop_layout.addWidget(self.edge_loop_button)
 
-        # Outer Edge Loop Layout
+        # Upper vertex input
         up_vertex_layout = QtWidgets.QHBoxLayout()
         up_vertex_layout.setContentsMargins(1, 1, 1, 1)
         up_vertex_layout.addWidget(self.up_vertex_label)
         up_vertex_layout.addWidget(self.up_vertex)
         up_vertex_layout.addWidget(self.up_vertex_button)
 
-        # inner Edge Loop Layout
+        # Lower vertex Layout
         low_vertex_layout = QtWidgets.QHBoxLayout()
         low_vertex_layout.setContentsMargins(1, 1, 1, 1)
         low_vertex_layout.addWidget(self.low_vertex_label)
         low_vertex_layout.addWidget(self.low_vertex)
         low_vertex_layout.addWidget(self.low_vertex_button)
 
+        # Left vertex Layout
+        left_vertex_layout = QtWidgets.QHBoxLayout()
+        left_vertex_layout.setContentsMargins(1, 1, 1, 1)
+        left_vertex_layout.addWidget(self.left_vertex_label)
+        left_vertex_layout.addWidget(self.left_vertex)
+        left_vertex_layout.addWidget(self.left_vertex_button)
+
+        # Right vertex Layout
+        right_vertex_layout = QtWidgets.QHBoxLayout()
+        right_vertex_layout.setContentsMargins(1, 1, 1, 1)
+        right_vertex_layout.addWidget(self.right_vertex_label)
+        right_vertex_layout.addWidget(self.right_vertex)
+        right_vertex_layout.addWidget(self.right_vertex_button)
+
         # Geometry Input Layout
         geometryInput_layout = QtWidgets.QVBoxLayout()
         geometryInput_layout.setContentsMargins(6, 1, 6, 2)
-        geometryInput_layout.addLayout(edgedge_loop_layout)
+        geometryInput_layout.addLayout(edge_loop_layout)
         geometryInput_layout.addLayout(up_vertex_layout)
         geometryInput_layout.addLayout(low_vertex_layout)
+        geometryInput_layout.addLayout(left_vertex_layout)
+        geometryInput_layout.addLayout(right_vertex_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
         # joints Layout
@@ -1057,6 +1092,12 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.low_vertex_button.clicked.connect(
             partial(self.populate_element, self.low_vertex, "vertex")
+        )
+        self.left_vertex_button.clicked.connect(
+            partial(self.populate_element, self.left_vertex, "vertex")
+        )
+        self.right_vertex_button.clicked.connect(
+            partial(self.populate_element, self.right_vertex, "vertex")
         )
         self.parent_button.clicked.connect(
             partial(self.populate_element, self.parent_node)
